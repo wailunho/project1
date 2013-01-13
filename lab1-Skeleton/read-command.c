@@ -24,24 +24,41 @@ make_command_stream (int (*get_next_byte) (void *),
   //printf("%s", (char *)(get_next_byte_argument)); 
   int ch = get_next_byte(get_next_byte_argument);
   int stream_size=0; 
+  int breakcount=0;
   char *buff = malloc(sizeof(get_next_byte_argument)+1);
   while(ch != EOF) {
+    if( ch =='\n' || ch == ';'){
+    breakcount++;
+    }
     buff[stream_size]=ch;
     stream_size++;
     ch = get_next_byte(get_next_byte_argument); 
   }
   //printf("Size of the bytestream is %d\n", sizeof(get_next_byte_argument)); 
   //printf("the buffer contains:\n%s", buff);
+  printf("the number of line breaks are: %d\n", breakcount); 
+  
   
   char delims[] = "\n;";
   char *result = NULL;
-  //int inst_count = 0;
+  size_t result_size = sizeof(result);
+  char *lines[breakcount+1];
+  int numlines=0;
   result = strtok(buff, delims);
   while( result != NULL) {
-    printf("%s\n", result);
-    //inst_count++;
+    lines[numlines] = result;
+    numlines++;
     result = strtok(NULL, delims);
   }
+  
+  int i=0;
+  for( ; i<numlines; i++){
+  printf("%s\n", lines[i]);
+  }
+  
+  //lines is an array of Cpointers to strings 
+  
+
   //doesnt work when i free memory
   //free(buff);
 
