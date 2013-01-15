@@ -30,11 +30,11 @@ enum token_type
    complete the incomplete type declaration in command.h.  */
 struct command_stream
 {
-	int (*byte)(void *);
-	void * argu;
-	int commandnum;
+	char* stream;
 	char* token;
-	
+	int size;
+	enum token_type last_token;
+	enum token_type current_token;
 };
 
 command_stream_t
@@ -45,16 +45,39 @@ make_command_stream (int (*get_next_byte) (void *),
      add auxiliary functions and otherwise modify the source code.
      You can also use external functions defined in the GNU C Library.  */
   command_stream_t buff = checked_malloc(sizeof(struct command_stream));
-  buff->byte = get_next_byte;
-  buff->argu = get_next_byte_argument;
-  
+  buff->stream = checked_malloc(sizeof (get_next_byte_argument) +1);
+  buff->token = checked_malloc(30 * sizeof (char));
+  int ch = get_next_byte(get_next_byte_argument);
+  int stream_size = 0;
+  while(ch != EOF) 
+  {
+        buff->stream[stream_size]=ch;
+        stream_size++;
+        ch = get_next_byte(get_next_byte_argument); 
+  }
+  buff->stream[stream_size]=ch;
+  stream_size++;
+
   return buff;
 }
+
+
+
 
 command_t
 read_command_stream (command_stream_t s)
 {
   /* FIXME: Replace this with your implementation too.  */
-  
-  return 0;
+        char *result = &(s->stream[0]);
+  	while (*(result) != EOF)
+ 	{
+ 		printf("%c", *(result));
+  		result++;
+        }
+	
+	return 0;
 }
+
+
+	
+
