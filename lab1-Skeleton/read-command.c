@@ -6,10 +6,11 @@
 #include <stdio.h>
 #include <error.h>
 #include <string.h>
+#include <ctype.h>
 
 //added
 #include "alloc.h"
-
+int count = 0;
 /* FIXME: You may need to add #include directives, macro definitions,
    static function definitions, etc.  */
 enum token_type
@@ -57,37 +58,43 @@ void increase_token_size(command_stream_t s)
 
 command_stream_t get_token(command_stream_t buff)
 {
+  int token_finished = 0;
   int numofchar = 0;
   int ch = buff->get_next_byte(buff->get_next_byte_argument);
-  while(ch != EOF)
+  while(token_finished == 0)
   {
     //remove whitespaces
     if(ch == ' ' || ch == '\t')
+    {
+      ch = buff->get_next_byte(buff->get_next_byte_argument);
       continue;
+    }
 
     //read a word
-    else if(('A' <= ch && ch <= 'Z') || ('a' <= ch && ch <= 'z') ||
-       ('0' <= ch && ch <= '9') || ch == '!' ||
+    else if(isalnum(ch) || ch == '!' ||
        ch == '%' || ch == '+' || ch == ',' || ch == '-' || 
        ch == '.' || ch == '/' || ch == ':' || ch == '@' || ch == '^')
     {
       buff->token[numofchar++] = ch;
       while(ch = buff->get_next_byte(buff->get_next_byte_argument))
       {
-          if(('A' <= ch && ch <= 'Z') || ('a' <= ch && ch <= 'z') ||
-            ('0' <= ch && ch <= '9') || ch == '!' ||
+          if(isalnum(ch)  || ch == '!' ||
              ch == '%' || ch == '+' || ch == ',' || ch == '-' || 
              ch == '.' || ch == '/' || ch == ':' || ch == '@' || ch == '^')
           {
             buff->token[numofchar++] = ch;
           }
           else
+          {
+            buff->token[numofchar] = '\0';
+            buff->current_token = WORD_T;
+            token_finished = 1;
             break;
+          }
+           
           if(buff->token_size <= numofchar)
           {
             increase_token_size(buff);
-            buff->token[numofchar] = '\0';
-            buff->current_token = WORD_T;
           }
       }
 
@@ -139,21 +146,26 @@ make_command_stream (int (*get_next_byte) (void *),
 command_t
 read_command_stream (command_stream_t s)
 {
-  /* FIXME: Replace this with your implementation too.  */
-      /*  char *result = &(s->stream[0]);
-  	while (*(result) != EOF)
- 	{
- 		printf("%c", *(result));
-  		result++;
-        }
-*/
-  int i = 0;
+  /* FIXME: Replace this with your implementation too.  */  int i = 0;
   for(i; s->token[i] != '\0'; i++)
   {
     printf("%c", s->token[i]);
   }
 
   printf("\n%d\n", s->linenum);
-  return 0;
+  if(count == 0 || count == 1)
+  {
+    command_t command_out = checked_malloc( sizeof(struct command) );
+    char** lineout = checked_malloc(sizeof(char*) * 50); 
+    lineout[0] = "ls -s";
+    lineout[1] = "testing\0";
+    
+    command_out->type = SIMPLE_COMMAND;
+    command_out->u.word = lineout;
+    count += 1;
+    return command_out;
+  }
+  else
+    return NULL;
 }
 
