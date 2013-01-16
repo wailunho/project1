@@ -99,7 +99,8 @@ command_stream_t get_token(command_stream_t buff)
       buff->current_string[numofchar] = '\0';
       buff->current_token = WORD_T;
       buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
-      strcpy(buff->stream[buff->stream_loc++], buff->current_string);
+      strcpy(buff->stream[buff->stream_loc], buff->current_string);
+      buff->stream_loc++;
       token_finished = 1;
     }
     //a command is made
@@ -132,36 +133,14 @@ command_stream_t get_token(command_stream_t buff)
         buff->current_token = AND_T;
         buff->current_string[numofchar++] = '&';
         buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
-        strcpy(buff->stream[buff->stream_loc++], buff->current_string);
+        strcpy(buff->stream[buff->stream_loc], buff->current_string);
+        buff->stream_loc++;
         token_finished = 1;
         break;
       }
       else
       {
         error (1, 0, "Line %d: Syntax error: &&", buff->linenum);
-      }
-    }
-    else if (ch == '|')
-    {
-      buff->current_string[numofchar++] = '|';
-      ch = buff->get_next_byte(buff->get_next_byte_argument);
-      if (ch == '|')
-      {
-        buff->current_token = OR_T;
-        buff->current_string[numofchar++] = '|';
-        buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
-        strcpy(buff->stream[buff->stream_loc++], buff->current_string);
-        token_finished = 1;
-        break;
-      }
-      else
-      {
-        ungetc(ch, buff->get_next_byte_argument);
-        buff->current_token = PIPE_T;
-        buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
-        strcpy(buff->stream[buff->stream_loc++], buff->current_string);
-        token_finished = 1;
-        break;
       }
     }
     else
@@ -221,12 +200,32 @@ read_command_stream (command_stream_t s)
   {
     command_t command_out = checked_malloc( sizeof(struct command) );
 
-   
-   
-    command_out->type = SIMPLE_COMMAND;
-    command_out->u.word = s->stream;
 
-    return command_out;
+    //command_out->type = SIMPLE_COMMAND;
+    //command_out->u.word = s->stream;
+  
+     
+    if(s->current_token == WORD_T ||
+	s-> current_token == SEMICOLON_T
+	|| s-> current_token == NEWLINE_T)
+    {
+    	command_out->type = SIMPLE_COMMAND;
+    	command_out->u.word = s->stream;
+    }
+    else if(s->current_token == PIPE_T)
+    {
+        command_out->type = OR_COMMAND;
+	command_out->u.word = s->stream;
+
+    }
+    else if(s->current_token == AND_T)
+    {
+	command_out->type = AND_COMMAND;
+	command_out->u.word = s->stream;
+    }
+    
+
+	return command_out;
   }
   else
     return NULL;
