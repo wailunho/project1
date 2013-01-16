@@ -99,8 +99,7 @@ command_stream_t get_token(command_stream_t buff)
       buff->current_string[numofchar] = '\0';
       buff->current_token = WORD_T;
       buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
-      strcpy(buff->stream[buff->stream_loc], buff->current_string);
-      buff->stream_loc++;
+      strcpy(buff->stream[buff->stream_loc++], buff->current_string);
       token_finished = 1;
     }
     //a command is made
@@ -133,14 +132,36 @@ command_stream_t get_token(command_stream_t buff)
         buff->current_token = AND_T;
         buff->current_string[numofchar++] = '&';
         buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
-        strcpy(buff->stream[buff->stream_loc], buff->current_string);
-        buff->stream_loc++;
+        strcpy(buff->stream[buff->stream_loc++], buff->current_string);
         token_finished = 1;
         break;
       }
       else
       {
         error (1, 0, "Line %d: Syntax error: &&", buff->linenum);
+      }
+    }
+    else if (ch == '|')
+    {
+      buff->current_string[numofchar++] = '|';
+      ch = buff->get_next_byte(buff->get_next_byte_argument);
+      if (ch == '|')
+      {
+        buff->current_token = OR_T;
+        buff->current_string[numofchar++] = '|';
+        buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
+        strcpy(buff->stream[buff->stream_loc++], buff->current_string);
+        token_finished = 1;
+        break;
+      }
+      else
+      {
+        ungetc(ch, buff->get_next_byte_argument);
+        buff->current_token = PIPE_T;
+        buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
+        strcpy(buff->stream[buff->stream_loc++], buff->current_string);
+        token_finished = 1;
+        break;
       }
     }
     else
