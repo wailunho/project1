@@ -69,7 +69,6 @@ command_stream_t get_token(command_stream_t buff)
     if(ch == ' ' || ch == '\t')
     {
       ch = buff->get_next_byte(buff->get_next_byte_argument);
-      continue;
     }
 
     //read a word
@@ -119,7 +118,6 @@ command_stream_t get_token(command_stream_t buff)
       ungetc(ch, buff->get_next_byte_argument);
       buff->current_token = NEWLINE_T;
       token_finished = 1;
-      break;
     }
 
     //it reaches the end of file
@@ -127,7 +125,6 @@ command_stream_t get_token(command_stream_t buff)
     {
       buff->current_token = EOF_T;
       token_finished = 1;
-      break;
     }
     //reading in && and check the syntax
     else if(ch == '&')
@@ -143,7 +140,6 @@ command_stream_t get_token(command_stream_t buff)
         strcpy(buff->stream[buff->stream_loc++], buff->current_string);
         buff->stream[buff->stream_loc] = NULL;
         token_finished = 1;
-        break;
       }
       else
       {
@@ -164,7 +160,6 @@ command_stream_t get_token(command_stream_t buff)
         strcpy(buff->stream[buff->stream_loc++], buff->current_string);
         buff->stream[buff->stream_loc] = NULL;
         token_finished = 1;
-        break;
       }
       else
       {
@@ -175,7 +170,6 @@ command_stream_t get_token(command_stream_t buff)
         strcpy(buff->stream[buff->stream_loc++], buff->current_string);
         buff->stream[buff->stream_loc] = NULL;
         token_finished = 1;
-        break;
       }
     }
     //reading in <
@@ -188,7 +182,6 @@ command_stream_t get_token(command_stream_t buff)
       strcpy(buff->stream[buff->stream_loc++], buff->current_string);
       buff->stream[buff->stream_loc] = NULL;
       token_finished = 1;
-     break;
     }
     //reading in >
     else if(ch == '>')
@@ -200,8 +193,32 @@ command_stream_t get_token(command_stream_t buff)
       strcpy(buff->stream[buff->stream_loc++], buff->current_string);
       buff->stream[buff->stream_loc] = NULL;
       token_finished = 1;
-      break;
-    }    
+    }   
+    else if(ch == '(')
+    {
+      buff->current_token = OPEN_PAREN_T;
+      buff->current_string[numofchar++] = '(';
+      buff->current_string[numofchar] = '\0';
+      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
+      strcpy(buff->stream[buff->stream_loc++], buff->current_string);
+      buff->stream[buff->stream_loc] = NULL;
+      token_finished = 1;
+    }   
+    else if(ch == ')')
+    {
+      buff->current_token = CLOSE_PAREN_T;
+      buff->current_string[numofchar++] = ')';
+      buff->current_string[numofchar] = '\0';
+      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
+      strcpy(buff->stream[buff->stream_loc++], buff->current_string);
+      buff->stream[buff->stream_loc] = NULL;
+      token_finished = 1;
+    }   
+    else if(ch == '#')
+    {
+      while ((ch = buff->get_next_byte(buff->get_next_byte_argument)) != '\n');
+      ungetc(ch, buff->get_next_byte_argument);
+    } 
     else
       ch = buff->get_next_byte(buff->get_next_byte_argument);  
 
