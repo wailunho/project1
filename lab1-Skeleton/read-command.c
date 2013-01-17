@@ -138,6 +138,7 @@ command_stream_t get_token(command_stream_t buff)
       {
         buff->current_token = AND_T;
         buff->current_string[numofchar++] = '&';
+        buff->current_string[numofchar] = '\0';
         buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
         strcpy(buff->stream[buff->stream_loc++], buff->current_string);
         buff->stream[buff->stream_loc] = NULL;
@@ -158,6 +159,7 @@ command_stream_t get_token(command_stream_t buff)
       {
         buff->current_token = OR_T;
         buff->current_string[numofchar++] = '|';
+        buff->current_string[numofchar] = '\0';
         buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
         strcpy(buff->stream[buff->stream_loc++], buff->current_string);
         buff->stream[buff->stream_loc] = NULL;
@@ -167,6 +169,7 @@ command_stream_t get_token(command_stream_t buff)
       else
       {
         ungetc(ch, buff->get_next_byte_argument);
+        buff->current_string[numofchar] = '\0';
         buff->current_token = PIPE_T;
         buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
         strcpy(buff->stream[buff->stream_loc++], buff->current_string);
@@ -180,6 +183,7 @@ command_stream_t get_token(command_stream_t buff)
     {
       buff->current_token = INPUT_T;
       buff->current_string[numofchar++] = '<';
+      buff->current_string[numofchar] = '\0';
       buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
       strcpy(buff->stream[buff->stream_loc++], buff->current_string);
       buff->stream[buff->stream_loc] = NULL;
@@ -191,6 +195,7 @@ command_stream_t get_token(command_stream_t buff)
     {
       buff->current_token = OUTPUT_T;
       buff->current_string[numofchar++] = '>';
+      buff->current_string[numofchar] = '\0';
       buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
       strcpy(buff->stream[buff->stream_loc++], buff->current_string);
       buff->stream[buff->stream_loc] = NULL;
