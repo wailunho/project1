@@ -102,9 +102,6 @@ command_stream_t get_token(command_stream_t buff)
       buff->stream_loc++;
       token_finished = 1;
     }
-    //remove whitespaces from the beginning of a command
-    else if(ch == ' ' || ch == '\t')
-      continue;
     //a command is made
     else if (ch == '\n')
     {
@@ -128,7 +125,22 @@ command_stream_t get_token(command_stream_t buff)
     }
     else if(ch == '&')
     {
-
+      buff->current_string[numofchar++] = '&';
+      ch = buff->get_next_byte(buff->get_next_byte_argument);
+      if (ch == '&')
+      {
+        buff->current_token = AND_T;
+        buff->current_string[numofchar++] = '&';
+        buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
+        strcpy(buff->stream[buff->stream_loc], buff->current_string);
+        buff->stream_loc++;
+        token_finished = 1;
+        break;
+      }
+      else
+      {
+        error (1, 0, "Line %d: Syntax error: &&", buff->linenum);
+      }
     }
     else
       ch = buff->get_next_byte(buff->get_next_byte_argument);  
@@ -139,7 +151,9 @@ command_stream_t get_token(command_stream_t buff)
 
 command_stream_t get_token_array(command_stream_t buff)
 {
-  buff = make_command_stream(buff->get_next_byte, buff->get_next_byte_argument);
+  free(buff->stream);
+  buff->stream = checked_malloc(sizeof (char*) * buff->stream_size);
+  buff->stream_loc = 0;
   buff = get_token(buff);
   while(buff->current_token != NEWLINE_T && buff->current_token != SEMICOLON_T 
     && buff->current_token != EOF_T )
@@ -164,7 +178,7 @@ make_command_stream (int (*get_next_byte) (void *),
   buff->stream_size = 20;
   buff->stream = checked_malloc(sizeof (char*) * buff->stream_size);
   buff->stream_loc = 0;
-  buff->linenum = 0;
+  buff->linenum = 1;
   buff->last_token = WORD_T;
   buff->get_next_byte = get_next_byte;
   buff->get_next_byte_argument = get_next_byte_argument;
