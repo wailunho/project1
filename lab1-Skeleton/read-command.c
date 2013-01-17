@@ -99,29 +99,35 @@ command_stream_t get_token(command_stream_t buff)
       buff->current_token = WORD_T;
       buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
       strcpy(buff->stream[buff->stream_loc++], buff->current_string);
+      buff->stream[buff->stream_loc] = NULL;
       token_finished = 1;
     }
     //a command is made
-    else if (ch == '\n')
+    else if (ch == '\n' || ch == ';')
     {
-      buff->linenum++;
-      while((ch = buff->get_next_byte(buff->get_next_byte_argument)) == '\n')
+      if(ch == '\n')
+        buff->linenum++;
+      ch = buff->get_next_byte(buff->get_next_byte_argument);
+      while(ch == '\n' || ch == ';')
       {
-         buff->linenum++;
+        if(ch == '\n')
+          buff->linenum++;
+        ch = buff->get_next_byte(buff->get_next_byte_argument);
       }
       ungetc(ch, buff->get_next_byte_argument);
       buff->current_token = NEWLINE_T;
-      buff->current_string[numofchar++] = '\0';
       token_finished = 1;
       break;
     }
+
+    //it reaches the end of file
     else if(ch == EOF)
     {
       buff->current_token = EOF_T;
-      buff->current_string[numofchar++] = '\0';
       token_finished = 1;
       break;
     }
+    //reading in && and check the syntax
     else if(ch == '&')
     {
       buff->current_string[numofchar++] = '&';
@@ -132,6 +138,7 @@ command_stream_t get_token(command_stream_t buff)
         buff->current_string[numofchar++] = '&';
         buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
         strcpy(buff->stream[buff->stream_loc++], buff->current_string);
+        buff->stream[buff->stream_loc] = NULL;
         token_finished = 1;
         break;
       }
@@ -140,6 +147,7 @@ command_stream_t get_token(command_stream_t buff)
         error (1, 0, "Line %d: Syntax error: &&", buff->linenum);
       }
     }
+    //reading in either | or ||
     else if (ch == '|')
     {
       buff->current_string[numofchar++] = '|';
@@ -150,6 +158,7 @@ command_stream_t get_token(command_stream_t buff)
         buff->current_string[numofchar++] = '|';
         buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
         strcpy(buff->stream[buff->stream_loc++], buff->current_string);
+        buff->stream[buff->stream_loc] = NULL;
         token_finished = 1;
         break;
       }
@@ -159,10 +168,34 @@ command_stream_t get_token(command_stream_t buff)
         buff->current_token = PIPE_T;
         buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
         strcpy(buff->stream[buff->stream_loc++], buff->current_string);
+        buff->stream[buff->stream_loc] = NULL;
         token_finished = 1;
         break;
       }
     }
+    //reading in <
+    else if(ch == '<')
+    {
+      buff->current_token = INPUT_T;
+      buff->current_string[numofchar++] = '<';
+      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
+      strcpy(buff->stream[buff->stream_loc++], buff->current_string);
+      buff->stream[buff->stream_loc] = NULL;
+      token_finished = 1;
+     break;
+    }
+    //reading in >
+    else if(ch == '>')
+    {
+      buff->current_token = OUTPUT_T;
+      buff->current_string[numofchar++] = '>';
+      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
+      strcpy(buff->stream[buff->stream_loc++], buff->current_string);
+      buff->stream[buff->stream_loc] = NULL;
+      token_finished = 1;
+      break;
+    }    
+
     else
       ch = buff->get_next_byte(buff->get_next_byte_argument);  
 
