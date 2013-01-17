@@ -84,63 +84,44 @@ command_stream_t get_token(command_stream_t buff)
           {
             buff->token[numofchar++] = ch;
           }
-          else if(ch == '\n' || ch == ';')
-          {
-               buff->linenum++;
-            while(ch = buff->get_next_byte(buff->get_next_byte_argument) == '\n')
-            {
-               buff->linenum++;
-            }
-            buff->current_token = NEWLINE_T;
-            buff->token[numofchar++] = ch;
-            buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
-            strcpy(buff->stream[buff->stream_loc], buff->token);
-            buff->stream_loc++;
-            token_finished = 1;
-            break;
-
-          }
           else
           {
-            buff->token[numofchar] = '\0';
-            buff->current_token = WORD_T;
-            buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
-            strcpy(buff->stream[buff->stream_loc], buff->token);
-            buff->stream_loc++;
-            token_finished = 1;
+            ungetc(ch, buff->get_next_byte_argument);
             break;
-          }
-           
+          }     
           if(buff->token_size <= numofchar)
           {
             increase_token_size(buff);
           }
       }
-
+      buff->token[numofchar] = '\0';
+      buff->current_token = WORD_T;
+      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
+      strcpy(buff->stream[buff->stream_loc], buff->token);
+      buff->stream_loc++;
+      token_finished = 1;
     }
     //remove whitespaces from the beginning of a command
     else if(ch == ' ' || ch == '\t')
       continue;
     //a command is made
-    else if (ch == '\n' || ch == ';')
+    else if (ch == '\n')
     {
       buff->linenum++;
-      while(ch = buff->get_next_byte(buff->get_next_byte_argument) == '\n')
+      while((ch = buff->get_next_byte(buff->get_next_byte_argument)) == '\n')
       {
          buff->linenum++;
       }
+      ungetc(ch, buff->get_next_byte_argument);
       buff->current_token = NEWLINE_T;
-      buff->token[numofchar++] = ch;
-      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
-      strcpy(buff->stream[buff->stream_loc], buff->token);
-      buff->stream_loc++;
+      buff->token[numofchar++] = '\0';
       token_finished = 1;
       break;
     }
     else if(ch == EOF)
     {
       buff->current_token = EOF_T;
-      buff->token[numofchar++] = ch;
+      buff->token[numofchar++] = -1;
       buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
       strcpy(buff->stream[buff->stream_loc], buff->token);
       buff->stream_loc++;
@@ -156,6 +137,7 @@ command_stream_t get_token(command_stream_t buff)
 
 command_stream_t get_token_array(command_stream_t buff)
 {
+  buff = make_command_stream(buff->get_next_byte, buff->get_next_byte_argument);
   buff = get_token(buff);
   while(buff->current_token != NEWLINE_T && buff->current_token != SEMICOLON_T 
     && buff->current_token != EOF_T )
@@ -194,15 +176,13 @@ make_command_stream (int (*get_next_byte) (void *),
 command_t
 read_command_stream (command_stream_t s)
 {
-  /* FIXME: Replace this with your implementation too.  */  int i = 0;
+  /* FIXME: Replace this with your implementation too.  */  
   
-  if(count == 0 || count == 1)
+  if(count < 4)
   {
     s = get_token_array(s);
     command_t command_out = checked_malloc( sizeof(struct command) );
-    char** lineout = checked_malloc(sizeof(char*) * 50); 
-    lineout[0] = "ls -s";
-    lineout[1] = "testing\0";
+
     
     command_out->type = SIMPLE_COMMAND;
     command_out->u.word = s->stream;
