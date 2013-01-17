@@ -18,7 +18,7 @@ enum token_type
 	WORD_T,	//ASCII letters, digits, or any of: ! % + , - . / : @ ^ _
 	SEMICOLON_T, // ;
 	PIPE_T, // |
-	AND_T, 	//&&
+	AND_T, 	//&&  
 	OR_T, 	// ||
 	OPEN_PAREN_T, // (
 	CLOSE_PAREN_T, // )
@@ -35,7 +35,8 @@ struct command_stream
   int stream_loc;
 	char** stream;
   int stream_size;
-  char* token;
+  char* last_string;
+  char* current_string;
   int token_size;
   int linenum;
   enum token_type last_token;
@@ -53,7 +54,7 @@ void increase_stream_size(command_stream_t s)
 void increase_token_size(command_stream_t s)
 {
     s->token_size += 20;
-    s->token = checked_realloc(s->token, sizeof(char*) * s->token_size);
+    s->current_string = checked_realloc(s->current_string, sizeof(char*) * s->token_size);
 }
 
 command_stream_t get_token(command_stream_t buff)
@@ -75,14 +76,14 @@ command_stream_t get_token(command_stream_t buff)
        ch == '%' || ch == '+' || ch == ',' || ch == '-' || 
        ch == '.' || ch == '/' || ch == ':' || ch == '@' || ch == '^')
     {
-      buff->token[numofchar++] = ch;
+      buff->current_string[numofchar++] = ch;
       while(ch = buff->get_next_byte(buff->get_next_byte_argument))
       {
           if(isalnum(ch)  || ch == '!' ||
              ch == '%' || ch == '+' || ch == ',' || ch == '-' || 
              ch == '.' || ch == '/' || ch == ':' || ch == '@' || ch == '^')
           {
-            buff->token[numofchar++] = ch;
+            buff->current_string[numofchar++] = ch;
           }
           else
           {
@@ -94,10 +95,10 @@ command_stream_t get_token(command_stream_t buff)
             increase_token_size(buff);
           }
       }
-      buff->token[numofchar] = '\0';
+      buff->current_string[numofchar] = '\0';
       buff->current_token = WORD_T;
       buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
-      strcpy(buff->stream[buff->stream_loc], buff->token);
+      strcpy(buff->stream[buff->stream_loc], buff->current_string);
       buff->stream_loc++;
       token_finished = 1;
     }
@@ -114,19 +115,20 @@ command_stream_t get_token(command_stream_t buff)
       }
       ungetc(ch, buff->get_next_byte_argument);
       buff->current_token = NEWLINE_T;
-      buff->token[numofchar++] = '\0';
+      buff->current_string[numofchar++] = '\0';
       token_finished = 1;
       break;
     }
     else if(ch == EOF)
     {
       buff->current_token = EOF_T;
-      buff->token[numofchar++] = -1;
-      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
-      strcpy(buff->stream[buff->stream_loc], buff->token);
-      buff->stream_loc++;
+      buff->current_string[numofchar++] = '\0';
       token_finished = 1;
       break;
+    }
+    else if(ch == '&')
+    {
+
     }
     else
       ch = buff->get_next_byte(buff->get_next_byte_argument);  
@@ -158,7 +160,7 @@ make_command_stream (int (*get_next_byte) (void *),
 
   command_stream_t buff = checked_malloc(sizeof(struct command_stream));
   buff->token_size = 20;
-  buff->token = checked_malloc(sizeof(char*) * buff->token_size);
+  buff->current_string = checked_malloc(sizeof(char*) * buff->token_size);
   buff->stream_size = 20;
   buff->stream = checked_malloc(sizeof (char*) * buff->stream_size);
   buff->stream_loc = 0;
