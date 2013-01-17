@@ -11,6 +11,7 @@
 //added
 #include "alloc.h"
 int count = 0;
+
 /* FIXME: You may need to add #include directives, macro definitions,
    static function definitions, etc.  */
 enum token_type
@@ -213,6 +214,8 @@ command_stream_t get_token_array(command_stream_t buff)
     && buff->current_token != EOF_T )
   {
     buff = get_token(buff);
+    if(buff->stream_size <= buff->stream_loc)
+      increase_stream_size(buff);
   }
 
   return buff;
@@ -248,15 +251,14 @@ read_command_stream (command_stream_t s)
 {
   /* FIXME: Replace this with your implementation too.  */  
   
-  if(count < 4)
+  s = get_token_array(s);
+  if(s->current_token != EOF_T)
   {
-    s = get_token_array(s);
     command_t command_out = checked_malloc( sizeof(struct command) );
-
-    
+   
     command_out->type = SIMPLE_COMMAND;
     command_out->u.word = s->stream;
-    count += 1;
+
     return command_out;
   }
   else
