@@ -270,7 +270,7 @@ read_command_stream (command_stream_t s)
 
     //printf("Testing: token type is : %s\n", s->last_string);
     command_out->type = SIMPLE_COMMAND;
-    command_out->u.word = s->stream;
+    command_out->u.word = s->current_string;
     printf("Token-> ");
 
     /*
