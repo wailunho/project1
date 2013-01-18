@@ -297,35 +297,23 @@ make_command_stream (int (*get_next_byte) (void *),
 command_t
 read_command_stream (command_stream_t s)
 {
-<<<<<<< HEAD
-  /* FIXME: Replace this with your implementation too.  */ 
-  if (count != 2)
-  {
-   command_t com = get_command(s);
-  //if(s->current_token != EOF_T)
-  //{
-    //command_t command_out = checked_malloc( sizeof(struct command) );
-    //command_out->type = SIMPLE_COMMAND;
-    //command_out->u.word = s->stream; 
+ 
+  /*
+  TODO: 
+     WORD_T
+           word=s->stream
+     PIPE_T, 
+           fill in command[0] (left side of pipe)
+    
+  */
 
-    //printf("Testing: token type is : %s\n", s->last_string);
-    //command_out->type = SIMPLE_COMMAND;
-    //command_out->u.word = s->stream;
-    //printf("Token-> ");
-
-    /*
-    if(s->current_token == WORD_T ||
-  s-> current_token == SEMICOLON_T
-  || s-> current_token == NEWLINE_T)
-=======
-  
+ 
   s = get_token(s);
   if(s->current_token != EOF_T)
   {
     command_t command_out = checked_malloc( sizeof(struct command) );
    
     if(s->current_token == WORD_T)
->>>>>>> 9d0f904d25b5c1485511d664f5bedc120e4d1b11
     {
         printf("found a word!: %s\n", s->current_string);
         command_out->type = SIMPLE_COMMAND;
@@ -333,25 +321,25 @@ read_command_stream (command_stream_t s)
     }
     else if(s->current_token == PIPE_T)
     {
-	printf("found a pipe!: %s\n", s->current_string);
+  printf("found a pipe!: %s\n", s->current_string);
         command_out->type = SIMPLE_COMMAND;
         command_out->u.word = s->stream;
     }
     else if (s->current_token == AND_T)
     {
-	printf("found an AND: %s\n", s->current_string);
+  printf("found an AND: %s\n", s->current_string);
         command_out->type = SIMPLE_COMMAND;
         command_out->u.word = s->stream;
     }
     else if(s->current_token == OR_T)
     {
-	printf("found an OR: %s\n", s->current_string);
+  printf("found an OR: %s\n", s->current_string);
         command_out->type = SIMPLE_COMMAND;
         command_out->u.word = s->stream;
     }
     else if (s->current_token == INPUT_T)
     {   //still default, where does input go?
-	printf("Found an INPUT: %s\n", s->current_string);
+  printf("Found an INPUT: %s\n", s->current_string);
         command_out->type = SIMPLE_COMMAND;
         command_out->u.word = s->stream;
     }
@@ -375,23 +363,11 @@ read_command_stream (command_stream_t s)
     }
     else if(s->current_token ==NEWLINE_T || s->current_token == SEMICOLON_T)
     {   //default
-	//skip new lines
-	command_out->type = SIMPLE_COMMAND;
+  //skip new lines
+  command_out->type = SIMPLE_COMMAND;
         command_out->u.word = s->stream;
     }
 
-<<<<<<< HEAD
-  // return com;
- // }
-     count++;
-     return com;
-    }
-  //else
-    return NULL;
-}
-
-
-=======
     //printf("Testing: token type is : %s\n", s->current_string);
     //command_out->type = SIMPLE_COMMAND;
     //command_out->u.word = s->stream;
@@ -400,7 +376,6 @@ read_command_stream (command_stream_t s)
   }
   else
   {
-	return NULL;
+  return NULL;
   }
 }
->>>>>>> 9d0f904d25b5c1485511d664f5bedc120e4d1b11
