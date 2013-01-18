@@ -251,14 +251,12 @@ command_t get_simple_command(command_stream_t buff)
   int numofchar = 0;
   int word_size = 40;
   int current_line;
-  int isfirstword = 1;
   command_t s = checked_malloc(sizeof(struct command));
   s->u.word = checked_malloc(sizeof(char*));
   s->u.word[0] = checked_malloc(sizeof(char*) * word_size);
   s->isfinal  = 0;
-  strcpy(s->u.word[0], "\0");
+  strcpy(s->u.word[0], buff->current_string);
   buff->last_token  = buff->current_token;
-  buff->last_string = buff->current_string;
   current_line = buff->linenum;
 
   while(buff = get_token(buff))
@@ -274,10 +272,7 @@ command_t get_simple_command(command_stream_t buff)
           word_size += 40;
           s->u.word[0] = checked_realloc(s->u.word[0], sizeof(char*) * word_size);
         }
-        if(isfirstword == 1)
-          isfirstword = 0;
-        else
-          strcat(s->u.word[0], " ");
+        strcat(s->u.word[0], " ");
         strcat(s->u.word[0], buff->current_string);
       }
       else if (buff->current_token == INPUT_T || buff->current_token == OUTPUT_T)
@@ -332,10 +327,21 @@ command_t get_simple_command(command_stream_t buff)
     }
 
     buff->last_token  = buff->current_token;
-    buff->last_string = buff->current_string;
     current_line = buff->linenum;
   }
 }
+
+command_t get_command(command_stream_t buff)
+{
+  buff = get_token(buff);
+  if(buff->current_token == WORD_T)
+  {
+    command_t s = get_simple_command(buff);
+    return s;
+  }
+}
+
+
 
 command_stream_t
 make_command_stream (int (*get_next_byte) (void *),
@@ -443,18 +449,14 @@ error
   return NULL;
   }
   */
-  command_t result = get_simple_command(s);
+  command_t result = get_command(s);
   if (count == 1)
   {
-    count = 0;
     return NULL;
   }
   else
   {
-    if(result->isfinal == 1)
-    {
-      count = 1;
-    }
+    count++;
     return result;
   }
 }
