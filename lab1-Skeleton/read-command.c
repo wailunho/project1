@@ -10,7 +10,6 @@
 
 //added
 #include "alloc.h"
-int count = 0;
 
 /* FIXME: You may need to add #include directives, macro definitions,
    static function definitions, etc.  */
@@ -33,7 +32,7 @@ enum token_type
    complete the incomplete type declaration in command.h.  */
 struct command_stream
 {
-  int stream_loc;
+  int numofchar;
 	char** stream;
   int stream_size;
   char* last_string;
@@ -48,7 +47,7 @@ struct command_stream
 
 void increase_stream_size(command_stream_t s)
 {
-    s->stream_size += 20;
+    s->stream_size += 30;
     s->stream = checked_realloc(s->stream, sizeof(char*) * s->stream_size);
 }
 
@@ -97,10 +96,6 @@ command_stream_t get_token(command_stream_t buff)
       }
       buff->current_string[numofchar] = '\0';
       buff->current_token = WORD_T;
-      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
-
-      strcpy(buff->stream[buff->stream_loc++], buff->current_string);
-      buff->stream[buff->stream_loc] = NULL;
       token_finished = 1;
     }
     //a command is terminated by either newline or ;
@@ -147,9 +142,6 @@ command_stream_t get_token(command_stream_t buff)
         buff->current_token = AND_T;
         buff->current_string[numofchar++] = '&';
         buff->current_string[numofchar] = '\0';
-        buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar);
-        strcpy(buff->stream[buff->stream_loc++], buff->current_string);
-        buff->stream[buff->stream_loc] = NULL;
         token_finished = 1;
       }
       else
@@ -167,9 +159,6 @@ command_stream_t get_token(command_stream_t buff)
         buff->current_token = OR_T;
         buff->current_string[numofchar++] = '|';
         buff->current_string[numofchar] = '\0';
-        buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar);
-        strcpy(buff->stream[buff->stream_loc++], buff->current_string);
-        buff->stream[buff->stream_loc] = NULL;
         token_finished = 1;
       }
       else
@@ -177,9 +166,6 @@ command_stream_t get_token(command_stream_t buff)
         ungetc(ch, buff->get_next_byte_argument);
         buff->current_string[numofchar] = '\0';
         buff->current_token = PIPE_T;
-        buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar);
-        strcpy(buff->stream[buff->stream_loc++], buff->current_string);
-        buff->stream[buff->stream_loc] = NULL;
         token_finished = 1;
       }
     }
@@ -189,9 +175,6 @@ command_stream_t get_token(command_stream_t buff)
       buff->current_token = INPUT_T;
       buff->current_string[numofchar++] = '<';
       buff->current_string[numofchar] = '\0';
-      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar);
-      strcpy(buff->stream[buff->stream_loc++], buff->current_string);
-      buff->stream[buff->stream_loc] = NULL;
       token_finished = 1;
     }
     //reading in >
@@ -200,9 +183,6 @@ command_stream_t get_token(command_stream_t buff)
       buff->current_token = OUTPUT_T;
       buff->current_string[numofchar++] = '>';
       buff->current_string[numofchar] = '\0';
-      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar);
-      strcpy(buff->stream[buff->stream_loc++], buff->current_string);
-      buff->stream[buff->stream_loc] = NULL;
       token_finished = 1;
     }   
     else if(ch == '(')
@@ -210,9 +190,6 @@ command_stream_t get_token(command_stream_t buff)
       buff->current_token = OPEN_PAREN_T;
       buff->current_string[numofchar++] = '(';
       buff->current_string[numofchar] = '\0';
-      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar);
-      strcpy(buff->stream[buff->stream_loc++], buff->current_string);
-      buff->stream[buff->stream_loc] = NULL;
       token_finished = 1;
     }   
     else if(ch == ')')
@@ -220,9 +197,6 @@ command_stream_t get_token(command_stream_t buff)
       buff->current_token = CLOSE_PAREN_T;
       buff->current_string[numofchar++] = ')';
       buff->current_string[numofchar] = '\0';
-      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar);
-      strcpy(buff->stream[buff->stream_loc++], buff->current_string);
-      buff->stream[buff->stream_loc] = NULL;
       token_finished = 1;
     }   
     else if(ch == '#')
@@ -231,23 +205,29 @@ command_stream_t get_token(command_stream_t buff)
       ungetc(ch, buff->get_next_byte_argument);
     } 
   }
+  buff->numofchar = numofchar;
   return buff;
 }
 
 command_stream_t get_token_array(command_stream_t buff)
 {
+  int numofchar = 0;
   free(buff->stream);
-  buff->stream = checked_malloc(sizeof (char*) * buff->stream_size);
-  buff->stream_loc = 0;
+  buff->stream = checked_malloc(sizeof (char*));
   buff = get_token(buff);
+  buff->stream[0] = checked_malloc(sizeof (char*) * buff->stream_size);
+  strcpy(buff->stream[0], "\0");
   while(buff->current_token != NEWLINE_T && buff->current_token != SEMICOLON_T 
     && buff->current_token != EOF_T )
   {
-    buff = get_token(buff);
-    if(buff->stream_size <= buff->stream_loc)
+    numofchar += buff->numofchar;
+    if(buff->stream_size <= numofchar)
       increase_stream_size(buff);
-  }
 
+    strcat(buff->stream[0], buff->current_string);
+    buff = get_token(buff);
+  }
+  buff->stream[1] = NULL;
   return buff;
 }
 
@@ -262,9 +242,8 @@ make_command_stream (int (*get_next_byte) (void *),
   command_stream_t buff = checked_malloc(sizeof(struct command_stream));
   buff->token_size = 20;
   buff->current_string = checked_malloc(sizeof(char*) * buff->token_size);
-  buff->stream_size = 20;
-  buff->stream = checked_malloc(sizeof (char*) * buff->stream_size);
-  buff->stream_loc = 0;
+  buff->stream_size = 30;
+  buff->stream = checked_malloc(sizeof (char*));
   buff->linenum = 1;
   buff->last_token = WORD_T;
   buff->get_next_byte = get_next_byte;
@@ -273,13 +252,10 @@ make_command_stream (int (*get_next_byte) (void *),
   return buff;
 }
 
-
-
-
 command_t
 read_command_stream (command_stream_t s)
 {
-  /* FIXME: Replace this with your implementation too.  */  
+  /* FIXME: Replace this with your implementation too.  */ 
   
   s = get_token_array(s);
   if(s->current_token != EOF_T)
