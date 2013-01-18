@@ -261,9 +261,10 @@ read_command_stream (command_stream_t s)
   if(s->current_token != EOF_T)
   {
     command_t command_out = checked_malloc( sizeof(struct command) );
-    command_out->type = SIMPLE_COMMAND;
-    command_out->u.word = s->stream;
+    //command_out->type = SIMPLE_COMMAND;
+    //command_out->u.word = s->stream; 
 
+     printf("Testing: token type is : %s\n", s->last_string);
     //command_out->type = SIMPLE_COMMAND;
     //command_out->u.word = s->stream;
   
@@ -277,9 +278,9 @@ read_command_stream (command_stream_t s)
     }
     else if(s->current_token == PIPE_T)
     {
-        command_out->type = OR_COMMAND;
-	command_out->u.word = s->stream;
-
+        //command_out->type = PIPE_COMMAND;
+	//command_out->u.word = s->stream;
+	//command_out->u.command[0]->u.word = s->last_string;
     }
     else if(s->current_token == AND_T)
     {
