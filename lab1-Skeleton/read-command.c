@@ -241,7 +241,11 @@ command_stream_t get_token_array(command_stream_t buff)
   buff->stream_loc = 0;
   buff = get_token(buff);
   while(buff->current_token != NEWLINE_T && buff->current_token != SEMICOLON_T 
-    && buff->current_token != EOF_T )
+    && buff->current_token != EOF_T && buff->current_token != WORD_T
+    && buff->current_token != PIPE_T && buff->current_token != AND_T
+    && buff->current_token != OR_T && buff->current_token != OPEN_PAREN_T
+    && buff->current_token != CLOSE_PAREN_T && buff->current_token != INPUT_T
+    && buff->current_token != OUTPUT_T )
   {
     buff = get_token(buff);
     if(buff->stream_size <= buff->stream_loc)
@@ -288,17 +292,19 @@ read_command_stream (command_stream_t s)
     //command_out->type = SIMPLE_COMMAND;
     //command_out->u.word = s->stream; 
 
-     printf("Testing: token type is : %s\n", s->last_string);
-    //command_out->type = SIMPLE_COMMAND;
-    //command_out->u.word = s->stream;
-  
-     
+    //printf("Testing: token type is : %s\n", s->last_string);
+    command_out->type = SIMPLE_COMMAND;
+    command_out->u.word = s->stream;
+    printf("Token-> ");
+
+    /*
     if(s->current_token == WORD_T ||
 	s-> current_token == SEMICOLON_T
 	|| s-> current_token == NEWLINE_T)
     {
     	command_out->type = SIMPLE_COMMAND;
     	command_out->u.word = s->stream;
+	printf("WORD_T, SEMICOLON_T, NEWLINE_T\n");
     }
     else if(s->current_token == PIPE_T)
     {
@@ -311,7 +317,7 @@ read_command_stream (command_stream_t s)
 	command_out->type = AND_COMMAND;
 	command_out->u.word = s->stream;
     }
-    
+    */
 
 	return command_out;
   }
