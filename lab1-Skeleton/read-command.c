@@ -266,13 +266,10 @@ read_command_stream (command_stream_t s)
 
     //printf("Testing: token type is : %s\n", s->last_string);
     command_out->type = SIMPLE_COMMAND;
-<<<<<<< HEAD
-    command_out->u.word = s->current_string;
-    printf("Token-> ");
-=======
-    command_out->u.word = s->stream;
+//    command_out->u.word = s->current_string;
+//    printf("Token-> ");
+   command_out->u.word = s->stream;
     //printf("Token-> ");
->>>>>>> 04c9002a756c9cdd5f0232b590389ede52b0bda9
 
     /*
     if(s->current_token == WORD_T ||
