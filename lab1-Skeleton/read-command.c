@@ -103,16 +103,27 @@ command_stream_t get_token(command_stream_t buff)
       buff->stream[buff->stream_loc] = NULL;
       token_finished = 1;
     }
-    //a command is made
+    //a command is terminated by either newline or ;
     else if (ch == '\n' || ch == ';')
     {
       if(ch == '\n')
         buff->linenum++;
       ch = buff->get_next_byte(buff->get_next_byte_argument);
-      while(ch == '\n' || ch == ';')
+      //ignore any non-command token
+      while(ch == '\n' || ch == ';' || ch == '#' || ch == ' ' || ch == '\t')
       {
+        //code below ignore any extra newlines, ;, comments and whitespace.
+        //depends on the char it read, it does different setup.
+        //For extra newlines - increment the line number;
+        //For comments - ignore any character after # till \n
+        //and no actions for the others
         if(ch == '\n')
           buff->linenum++;
+        else if (ch == '#')
+        {
+          while((ch = buff->get_next_byte(buff->get_next_byte_argument)) != '\n');
+          buff->linenum++;
+        }
         ch = buff->get_next_byte(buff->get_next_byte_argument);
       }
       ungetc(ch, buff->get_next_byte_argument);
@@ -136,7 +147,7 @@ command_stream_t get_token(command_stream_t buff)
         buff->current_token = AND_T;
         buff->current_string[numofchar++] = '&';
         buff->current_string[numofchar] = '\0';
-        buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
+        buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar);
         strcpy(buff->stream[buff->stream_loc++], buff->current_string);
         buff->stream[buff->stream_loc] = NULL;
         token_finished = 1;
@@ -156,7 +167,7 @@ command_stream_t get_token(command_stream_t buff)
         buff->current_token = OR_T;
         buff->current_string[numofchar++] = '|';
         buff->current_string[numofchar] = '\0';
-        buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
+        buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar);
         strcpy(buff->stream[buff->stream_loc++], buff->current_string);
         buff->stream[buff->stream_loc] = NULL;
         token_finished = 1;
@@ -166,7 +177,7 @@ command_stream_t get_token(command_stream_t buff)
         ungetc(ch, buff->get_next_byte_argument);
         buff->current_string[numofchar] = '\0';
         buff->current_token = PIPE_T;
-        buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
+        buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar);
         strcpy(buff->stream[buff->stream_loc++], buff->current_string);
         buff->stream[buff->stream_loc] = NULL;
         token_finished = 1;
@@ -178,7 +189,7 @@ command_stream_t get_token(command_stream_t buff)
       buff->current_token = INPUT_T;
       buff->current_string[numofchar++] = '<';
       buff->current_string[numofchar] = '\0';
-      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
+      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar);
       strcpy(buff->stream[buff->stream_loc++], buff->current_string);
       buff->stream[buff->stream_loc] = NULL;
       token_finished = 1;
@@ -189,7 +200,7 @@ command_stream_t get_token(command_stream_t buff)
       buff->current_token = OUTPUT_T;
       buff->current_string[numofchar++] = '>';
       buff->current_string[numofchar] = '\0';
-      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
+      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar);
       strcpy(buff->stream[buff->stream_loc++], buff->current_string);
       buff->stream[buff->stream_loc] = NULL;
       token_finished = 1;
@@ -199,7 +210,7 @@ command_stream_t get_token(command_stream_t buff)
       buff->current_token = OPEN_PAREN_T;
       buff->current_string[numofchar++] = '(';
       buff->current_string[numofchar] = '\0';
-      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
+      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar);
       strcpy(buff->stream[buff->stream_loc++], buff->current_string);
       buff->stream[buff->stream_loc] = NULL;
       token_finished = 1;
@@ -209,7 +220,7 @@ command_stream_t get_token(command_stream_t buff)
       buff->current_token = CLOSE_PAREN_T;
       buff->current_string[numofchar++] = ')';
       buff->current_string[numofchar] = '\0';
-      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar + 1);
+      buff->stream[buff->stream_loc] = checked_malloc(sizeof (char*) * numofchar);
       strcpy(buff->stream[buff->stream_loc++], buff->current_string);
       buff->stream[buff->stream_loc] = NULL;
       token_finished = 1;
@@ -219,9 +230,6 @@ command_stream_t get_token(command_stream_t buff)
       while ((ch = buff->get_next_byte(buff->get_next_byte_argument)) != '\n');
       ungetc(ch, buff->get_next_byte_argument);
     } 
-    else
-      ch = buff->get_next_byte(buff->get_next_byte_argument);  
-
   }
   return buff;
 }
