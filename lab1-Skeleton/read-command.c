@@ -106,7 +106,7 @@ command_stream_t get_token(command_stream_t buff)
         buff->linenum++;
       ch = buff->get_next_byte(buff->get_next_byte_argument);
       //ignore any non-command token
-      while(ch == '\n' || ch == ';' || ch == '#' || ch == ' ' || ch == '\t')
+      while(ch == '\n' || ch == ';' || ch == '#' || ch == ' ' || ch == '\t' || ch == EOF)
       {
         //code below ignore any extra newlines, ;, comments and whitespace.
         //depends on the char it read, it does different setup.
@@ -119,11 +119,18 @@ command_stream_t get_token(command_stream_t buff)
         {
           while((ch = buff->get_next_byte(buff->get_next_byte_argument)) != '\n');
           buff->linenum++;
+        }  
+        else if(ch == EOF)
+        {
+          buff->current_token = EOF_T;
+          token_finished = 1;
+          break;
         }
         ch = buff->get_next_byte(buff->get_next_byte_argument);
       }
       ungetc(ch, buff->get_next_byte_argument);
-      buff->current_token = NEWLINE_T;
+      if(ch != EOF)
+        buff->current_token = NEWLINE_T;
       token_finished = 1;
     }
 
@@ -237,13 +244,16 @@ command_t get_command(command_stream_t buff)
 {
   int numofchar = 0;
   int word_size = 40;
+  buff->last_token = START_T;
   command_t s = checked_malloc(sizeof(struct command));
   s->u.word = checked_malloc(sizeof(char*));
   s->u.word[0] = checked_malloc(sizeof(char*) * word_size);
+  s->isfinal  = 0;
   strcpy(s->u.word[0], "\0");
 
   while(buff = get_token(buff))
   {
+    //simple command
     if(buff->last_token == WORD_T)
     {
       if(buff->current_token == WORD_T)
@@ -261,12 +271,41 @@ command_t get_command(command_stream_t buff)
       {
         s->u.word[1] = NULL;
         s->type = SIMPLE_COMMAND;
-        s->status = -1;
-        s->input = NULL;
-        s->output = NULL;
+        return s;
+      }
+      else if(buff->current_token == EOF_T)
+      {
+        s->u.word[1] = NULL;
+        s->type = SIMPLE_COMMAND;
+        s->isfinal = 1;
         return s;
       }
     }
+    else if(buff->last_token == START_T)
+    {
+      if(buff->current_token == WORD_T)
+      {
+        numofchar += buff->numofchar;
+        if(word_size <= numofchar)
+        {
+          word_size += 40;
+          s->u.word[0] = checked_realloc(s->u.word[0], sizeof(char*) * word_size);
+        }
+        strcat(s->u.word[0], buff->current_string);
+      }
+      else if(buff->current_token == NEWLINE_T)
+      {
+        continue;
+      }
+      else if(buff->current_token == EOF_T)
+      {
+        s->u.word[1] = NULL;
+        s->type = SIMPLE_COMMAND;
+        s->isfinal = 1;
+        return s;
+      }
+    }
+
     buff->last_token  = buff->current_token;
     buff->last_string = buff->current_string;
   }
@@ -286,7 +325,7 @@ make_command_stream (int (*get_next_byte) (void *),
   buff->stream_size = 30;
   buff->stream = checked_malloc(sizeof (char*));
   buff->linenum = 1;
-  buff->last_token = WORD_T;
+  buff->last_token = START_T;
   buff->current_token = WORD_T;
   buff->get_next_byte = get_next_byte;
   buff->get_next_byte_argument = get_next_byte_argument;
@@ -307,7 +346,7 @@ read_command_stream (command_stream_t s)
     
   */
 
- 
+ /*
   s = get_token(s);
   if(s->current_token != EOF_T)
   {
@@ -377,5 +416,20 @@ read_command_stream (command_stream_t s)
   else
   {
   return NULL;
+  }
+  */
+  command_t result = get_command(s);
+  if (count == 1)
+  {
+    count = 0;
+    return NULL;
+  }
+  else
+  {
+    if(result->isfinal == 1)
+    {
+      count = 1;
+    }
+    return result;
   }
 }
