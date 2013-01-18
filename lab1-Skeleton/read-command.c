@@ -15,16 +15,16 @@
    static function definitions, etc.  */
 enum token_type
   {
-	WORD_T,	//ASCII letters, digits, or any of: ! % + , - . / : @ ^ _
-	SEMICOLON_T, // ;
-	PIPE_T, // |
-	AND_T, 	//&&  
-	OR_T, 	// ||
-	OPEN_PAREN_T, // (
-	CLOSE_PAREN_T, // )
-	INPUT_T, // <
-	OUTPUT_T, // >
-	NEWLINE_T, // \n	
+  WORD_T, //ASCII letters, digits, or any of: ! % + , - . / : @ ^ _
+  SEMICOLON_T, // ;
+  PIPE_T, // |
+  AND_T,  //&&  
+  OR_T,   // ||
+  OPEN_PAREN_T, // (
+  CLOSE_PAREN_T, // )
+  INPUT_T, // <
+  OUTPUT_T, // >
+  NEWLINE_T, // \n  
   EOF_T //end of file
   };
 
@@ -33,7 +33,7 @@ enum token_type
 struct command_stream
 {
   int numofchar;
-	char** stream;
+  char** stream;
   int stream_size;
   char* last_string;
   char* current_string;
@@ -218,11 +218,7 @@ command_stream_t get_token_array(command_stream_t buff)
   buff->stream[0] = checked_malloc(sizeof (char*) * buff->stream_size);
   strcpy(buff->stream[0], "\0");
   while(buff->current_token != NEWLINE_T && buff->current_token != SEMICOLON_T 
-    && buff->current_token != EOF_T && buff->current_token != WORD_T
-    && buff->current_token != PIPE_T && buff->current_token != AND_T
-    && buff->current_token != OR_T && buff->current_token != OPEN_PAREN_T
-    && buff->current_token != CLOSE_PAREN_T && buff->current_token != INPUT_T
-    && buff->current_token != OUTPUT_T )
+    && buff->current_token != EOF_T )
   {
     numofchar += buff->numofchar;
     if(buff->stream_size <= numofchar)
@@ -237,7 +233,7 @@ command_stream_t get_token_array(command_stream_t buff)
 
 command_stream_t
 make_command_stream (int (*get_next_byte) (void *),
-		     void *get_next_byte_argument)
+         void *get_next_byte_argument)
 {
   /* FIXME: Replace this with your implementation.  You may need to
      add auxiliary functions and otherwise modify the source code.
@@ -270,34 +266,38 @@ read_command_stream (command_stream_t s)
 
     //printf("Testing: token type is : %s\n", s->last_string);
     command_out->type = SIMPLE_COMMAND;
+<<<<<<< HEAD
     command_out->u.word = s->current_string;
     printf("Token-> ");
+=======
+    command_out->u.word = s->stream;
+    //printf("Token-> ");
+>>>>>>> 04c9002a756c9cdd5f0232b590389ede52b0bda9
 
     /*
     if(s->current_token == WORD_T ||
-	s-> current_token == SEMICOLON_T
-	|| s-> current_token == NEWLINE_T)
+  s-> current_token == SEMICOLON_T
+  || s-> current_token == NEWLINE_T)
     {
-    	command_out->type = SIMPLE_COMMAND;
-    	command_out->u.word = s->stream;
-	printf("WORD_T, SEMICOLON_T, NEWLINE_T\n");
+      command_out->type = SIMPLE_COMMAND;
+      command_out->u.word = s->stream;
+  printf("WORD_T, SEMICOLON_T, NEWLINE_T\n");
     }
     else if(s->current_token == PIPE_T)
     {
         //command_out->type = PIPE_COMMAND;
-	//command_out->u.word = s->stream;
-	//command_out->u.command[0]->u.word = s->last_string;
+  //command_out->u.word = s->stream;
+  //command_out->u.command[0]->u.word = s->last_string;
     }
     else if(s->current_token == AND_T)
     {
-	command_out->type = AND_COMMAND;
-	command_out->u.word = s->stream;
+  command_out->type = AND_COMMAND;
+  command_out->u.word = s->stream;
     }
     */
 
-	return command_out;
+  return command_out;
   }
   else
     return NULL;
 }
-
