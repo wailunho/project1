@@ -255,46 +255,75 @@ make_command_stream (int (*get_next_byte) (void *),
 command_t
 read_command_stream (command_stream_t s)
 {
-  /* FIXME: Replace this with your implementation too.  */ 
   
-  s = get_token_array(s);
+  s = get_token(s);
   if(s->current_token != EOF_T)
   {
     command_t command_out = checked_malloc( sizeof(struct command) );
-    //command_out->type = SIMPLE_COMMAND;
-    //command_out->u.word = s->stream; 
-
-    //printf("Testing: token type is : %s\n", s->last_string);
-    command_out->type = SIMPLE_COMMAND;
-//    command_out->u.word = s->current_string;
-//    printf("Token-> ");
-   command_out->u.word = s->stream;
-    //printf("Token-> ");
-
-    /*
-    if(s->current_token == WORD_T ||
-  s-> current_token == SEMICOLON_T
-  || s-> current_token == NEWLINE_T)
+   
+    if(s->current_token == WORD_T)
     {
-      command_out->type = SIMPLE_COMMAND;
-      command_out->u.word = s->stream;
-  printf("WORD_T, SEMICOLON_T, NEWLINE_T\n");
+        printf("found a word!: %s\n", s->current_string);
+        command_out->type = SIMPLE_COMMAND;
+        command_out->u.word = s->stream;
     }
     else if(s->current_token == PIPE_T)
     {
-        //command_out->type = PIPE_COMMAND;
-  //command_out->u.word = s->stream;
-  //command_out->u.command[0]->u.word = s->last_string;
+	printf("found a pipe!: %s\n", s->current_string);
+        command_out->type = SIMPLE_COMMAND;
+        command_out->u.word = s->stream;
     }
-    else if(s->current_token == AND_T)
+    else if (s->current_token == AND_T)
     {
-  command_out->type = AND_COMMAND;
-  command_out->u.word = s->stream;
+	printf("found an AND: %s\n", s->current_string);
+        command_out->type = SIMPLE_COMMAND;
+        command_out->u.word = s->stream;
     }
-    */
+    else if(s->current_token == OR_T)
+    {
+	printf("found an OR: %s\n", s->current_string);
+        command_out->type = SIMPLE_COMMAND;
+        command_out->u.word = s->stream;
+    }
+    else if (s->current_token == INPUT_T)
+    {   //still default, where does input go?
+	printf("Found an INPUT: %s\n", s->current_string);
+        command_out->type = SIMPLE_COMMAND;
+        command_out->u.word = s->stream;
+    }
+    else if(s->current_token == OUTPUT_T)
+    {   //still default, where does output go?
+        printf("Found an OUTPUT: %s\n", s->current_string);
+        command_out->type = SIMPLE_COMMAND;
+        command_out->u.word = s->stream;
+    }
+    else if(s->current_token == OPEN_PAREN_T)
+    {   //default, should fill in SUBSHELL_COMMAND
+        printf("Found an OPEN paren: %s\n", s->current_string);
+        command_out->type = SIMPLE_COMMAND;
+        command_out->u.word = s->stream;
+    }
+    else if(s->current_token == CLOSE_PAREN_T)
+    {    //default, should fill in subshell_command
+         printf("Found a CLOSE PAREN: %s\n", s->current_string);
+         command_out->type = SIMPLE_COMMAND;
+         command_out->u.word = s->stream;
+    }
+    else if(s->current_token ==NEWLINE_T || s->current_token == SEMICOLON_T)
+    {   //default
+	//skip new lines
+	command_out->type = SIMPLE_COMMAND;
+        command_out->u.word = s->stream;
+    }
 
-  return command_out;
+    //printf("Testing: token type is : %s\n", s->current_string);
+    //command_out->type = SIMPLE_COMMAND;
+    //command_out->u.word = s->stream;
+ 
+   return command_out;
   }
   else
-    return NULL;
+  {
+	return NULL;
+  }
 }
