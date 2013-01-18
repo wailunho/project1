@@ -10,11 +10,12 @@
 
 //added
 #include "alloc.h"
-
+int count = 0;
 /* FIXME: You may need to add #include directives, macro definitions,
    static function definitions, etc.  */
 enum token_type
   {
+  START_T,
   WORD_T, //ASCII letters, digits, or any of: ! % + , - . / : @ ^ _
   SEMICOLON_T, // ;
   PIPE_T, // |
@@ -214,9 +215,10 @@ command_stream_t get_token_array(command_stream_t buff)
   int numofchar = 0;
   free(buff->stream);
   buff->stream = checked_malloc(sizeof (char*));
-  buff = get_token(buff);
   buff->stream[0] = checked_malloc(sizeof (char*) * buff->stream_size);
+  buff = get_token(buff);
   strcpy(buff->stream[0], "\0");
+
   while(buff->current_token != NEWLINE_T && buff->current_token != SEMICOLON_T 
     && buff->current_token != EOF_T )
   {
@@ -229,6 +231,45 @@ command_stream_t get_token_array(command_stream_t buff)
   }
   buff->stream[1] = NULL;
   return buff;
+}
+
+command_t get_command(command_stream_t buff)
+{
+  int numofchar = 0;
+  int word_size = 40;
+  command_t s = checked_malloc(sizeof(struct command));
+  s->u.word = checked_malloc(sizeof(char*));
+  s->u.word[0] = checked_malloc(sizeof(char*) * word_size);
+  strcpy(s->u.word[0], "\0");
+
+  while(buff = get_token(buff))
+  {
+    if(buff->last_token == WORD_T)
+    {
+      if(buff->current_token == WORD_T)
+      {
+        numofchar += buff->numofchar;
+        if(word_size <= numofchar)
+        {
+          word_size += 40;
+          s->u.word[0] = checked_realloc(s->u.word[0], sizeof(char*) * word_size);
+        }
+        strcat(s->u.word[0], " ");
+        strcat(s->u.word[0], buff->current_string);
+      }
+      else if(buff->current_token == NEWLINE_T)
+      {
+        s->u.word[1] = NULL;
+        s->type = SIMPLE_COMMAND;
+        s->status = -1;
+        s->input = NULL;
+        s->output = NULL;
+        return s;
+      }
+    }
+    buff->last_token  = buff->current_token;
+    buff->last_string = buff->current_string;
+  }
 }
 
 command_stream_t
@@ -246,6 +287,7 @@ make_command_stream (int (*get_next_byte) (void *),
   buff->stream = checked_malloc(sizeof (char*));
   buff->linenum = 1;
   buff->last_token = WORD_T;
+  buff->current_token = WORD_T;
   buff->get_next_byte = get_next_byte;
   buff->get_next_byte_argument = get_next_byte_argument;
   
@@ -256,17 +298,18 @@ command_t
 read_command_stream (command_stream_t s)
 {
   /* FIXME: Replace this with your implementation too.  */ 
-  
-  s = get_token_array(s);
-  if(s->current_token != EOF_T)
+  if (count != 2)
   {
-    command_t command_out = checked_malloc( sizeof(struct command) );
+   command_t com = get_command(s);
+  //if(s->current_token != EOF_T)
+  //{
+    //command_t command_out = checked_malloc( sizeof(struct command) );
     //command_out->type = SIMPLE_COMMAND;
     //command_out->u.word = s->stream; 
 
     //printf("Testing: token type is : %s\n", s->last_string);
-    command_out->type = SIMPLE_COMMAND;
-    command_out->u.word = s->stream;
+    //command_out->type = SIMPLE_COMMAND;
+    //command_out->u.word = s->stream;
     //printf("Token-> ");
 
     /*
@@ -291,8 +334,13 @@ read_command_stream (command_stream_t s)
     }
     */
 
-  return command_out;
-  }
-  else
+  // return com;
+ // }
+     count++;
+     return com;
+    }
+  //else
     return NULL;
 }
+
+
