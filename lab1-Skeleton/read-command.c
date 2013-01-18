@@ -255,7 +255,17 @@ make_command_stream (int (*get_next_byte) (void *),
 command_t
 read_command_stream (command_stream_t s)
 {
-  
+ 
+  /*
+  TODO: 
+     WORD_T
+           word=s->stream
+     PIPE_T, 
+           fill in command[0] (left side of pipe)
+    
+  */
+
+ 
   s = get_token(s);
   if(s->current_token != EOF_T)
   {
