@@ -15,7 +15,6 @@ int count = 0;
    static function definitions, etc.  */
 enum token_type
   {
-  START_T,
   WORD_T, //ASCII letters, digits, or any of: ! % + , - . / : @ ^ _
   SEMICOLON_T, // ;
   PIPE_T, // |
@@ -99,11 +98,17 @@ command_stream_t get_token(command_stream_t buff)
       buff->current_token = WORD_T;
       token_finished = 1;
     }
-    //a command is terminated by either newline or ;
-    else if (ch == '\n' || ch == ';')
+    else if (ch == ';')
     {
-      if(ch == '\n')
-        buff->linenum++;
+      buff->current_token = SEMICOLON_T;
+      buff->current_string[numofchar++] = ';';
+      buff->current_string[numofchar] = '\0';
+      token_finished = 1;
+    }
+    //a command is terminated by either newline or ;
+    else if (ch == '\n')
+    {
+      buff->linenum++;
       ch = buff->get_next_byte(buff->get_next_byte_argument);
       //ignore any non-command token
       while(ch == '\n' || ch == ';' || ch == '#' || ch == ' ' || ch == '\t' || ch == EOF)
@@ -153,9 +158,7 @@ command_stream_t get_token(command_stream_t buff)
         token_finished = 1;
       }
       else
-      {
         error (1, 0, "Line %d: Syntax error: &&", buff->linenum);
-      }
     }
     //reading in either | or ||
     else if (ch == '|')
@@ -212,6 +215,9 @@ command_stream_t get_token(command_stream_t buff)
       while ((ch = buff->get_next_byte(buff->get_next_byte_argument)) != '\n');
       ungetc(ch, buff->get_next_byte_argument);
     } 
+    else
+      error (1, 0, "Line %d: Invalid character %c entered", buff->linenum, ch);
+   
   }
   buff->numofchar = numofchar;
   return buff;
@@ -240,20 +246,24 @@ command_stream_t get_token_array(command_stream_t buff)
   return buff;
 }
 
-command_t get_command(command_stream_t buff)
+command_t get_simple_command(command_stream_t buff)
 {
   int numofchar = 0;
   int word_size = 40;
-  buff->last_token = START_T;
+  int current_line;
+  int isfirstword = 1;
   command_t s = checked_malloc(sizeof(struct command));
   s->u.word = checked_malloc(sizeof(char*));
   s->u.word[0] = checked_malloc(sizeof(char*) * word_size);
   s->isfinal  = 0;
   strcpy(s->u.word[0], "\0");
+  buff->last_token  = buff->current_token;
+  buff->last_string = buff->current_string;
+  current_line = buff->linenum;
 
   while(buff = get_token(buff))
   {
-    //simple command
+    //reading any word
     if(buff->last_token == WORD_T)
     {
       if(buff->current_token == WORD_T)
@@ -264,26 +274,13 @@ command_t get_command(command_stream_t buff)
           word_size += 40;
           s->u.word[0] = checked_realloc(s->u.word[0], sizeof(char*) * word_size);
         }
-        strcat(s->u.word[0], " ");
+        if(isfirstword == 1)
+          isfirstword = 0;
+        else
+          strcat(s->u.word[0], " ");
         strcat(s->u.word[0], buff->current_string);
       }
-      else if(buff->current_token == NEWLINE_T)
-      {
-        s->u.word[1] = NULL;
-        s->type = SIMPLE_COMMAND;
-        return s;
-      }
-      else if(buff->current_token == EOF_T)
-      {
-        s->u.word[1] = NULL;
-        s->type = SIMPLE_COMMAND;
-        s->isfinal = 1;
-        return s;
-      }
-    }
-    else if(buff->last_token == START_T)
-    {
-      if(buff->current_token == WORD_T)
+      else if (buff->current_token == INPUT_T || buff->current_token == OUTPUT_T)
       {
         numofchar += buff->numofchar;
         if(word_size <= numofchar)
@@ -293,21 +290,50 @@ command_t get_command(command_stream_t buff)
         }
         strcat(s->u.word[0], buff->current_string);
       }
-      else if(buff->current_token == NEWLINE_T)
+    }
+    //last token is a <
+    else if(buff->last_token == INPUT_T)
+    {
+      if(buff->current_token != WORD_T)
+        error (1, 0, "Line %d: Syntax error: a word come after <", current_line);
+      else
       {
-        continue;
+        numofchar += buff->numofchar;
+        if(word_size <= numofchar)
+        {
+          word_size += 40;
+          s->u.word[0] = checked_realloc(s->u.word[0], sizeof(char*) * word_size);
+        }
+        strcat(s->u.word[0], buff->current_string);
       }
-      else if(buff->current_token == EOF_T)
+    }
+    //last token is a >
+    else if(buff->last_token == OUTPUT_T)
+    {
+      if(buff->current_token != WORD_T)
+        error (1, 0, "Line %d: Syntax error: a word come after >", current_line);
+      else
       {
-        s->u.word[1] = NULL;
-        s->type = SIMPLE_COMMAND;
-        s->isfinal = 1;
-        return s;
+        numofchar += buff->numofchar;
+        if(word_size <= numofchar)
+        {
+          word_size += 40;
+          s->u.word[0] = checked_realloc(s->u.word[0], sizeof(char*) * word_size);
+        }
+        strcat(s->u.word[0], buff->current_string);
       }
+    }
+    else
+    {
+      s->u.word[1] = NULL;
+      s->type = SIMPLE_COMMAND;
+      s->isfinal = 1;
+      return s;
     }
 
     buff->last_token  = buff->current_token;
     buff->last_string = buff->current_string;
+    current_line = buff->linenum;
   }
 }
 
@@ -325,7 +351,6 @@ make_command_stream (int (*get_next_byte) (void *),
   buff->stream_size = 30;
   buff->stream = checked_malloc(sizeof (char*));
   buff->linenum = 1;
-  buff->last_token = START_T;
   buff->current_token = WORD_T;
   buff->get_next_byte = get_next_byte;
   buff->get_next_byte_argument = get_next_byte_argument;
@@ -406,7 +431,7 @@ read_command_stream (command_stream_t s)
   command_out->type = SIMPLE_COMMAND;
         command_out->u.word = s->stream;
     }
-
+error
     //printf("Testing: token type is : %s\n", s->current_string);
     //command_out->type = SIMPLE_COMMAND;
     //command_out->u.word = s->stream;
@@ -418,7 +443,7 @@ read_command_stream (command_stream_t s)
   return NULL;
   }
   */
-  command_t result = get_command(s);
+  command_t result = get_simple_command(s);
   if (count == 1)
   {
     count = 0;
