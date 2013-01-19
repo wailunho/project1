@@ -13,6 +13,11 @@
 int count = 0;
 /* FIXME: You may need to add #include directives, macro definitions,
    static function definitions, etc.  */
+command_stream_t get_token(command_stream_t buff);
+command_t get_complete_command(command_stream_t buff);
+command_t get_simple_command(command_stream_t buff);
+command_t get_andorpipe_command(command_stream_t buff);
+
 enum token_type
   {
   WORD_T, //ASCII letters, digits, or any of: ! % + , - . / : @ ^ _
@@ -245,6 +250,17 @@ command_stream_t get_token_array(command_stream_t buff)
   buff->stream[1] = NULL;
   return buff;
 }
+command_t get_complete_command(command_stream_t buff)
+{
+  buff = get_token(buff);
+  command_t s;
+  if(buff->current_token == WORD_T || buff->current_token == INPUT_T
+    || buff->current_token == OUTPUT_T)
+  {
+    s = get_simple_command(buff);
+    return s;
+  }
+}
 
 command_t get_simple_command(command_stream_t buff)
 {
@@ -354,26 +370,33 @@ command_t get_simple_command(command_stream_t buff)
   return s;
 }
 
-command_t get_pipe_command(command_stream_t buff)
+command_t get_andorpipe_command(command_stream_t buff)
 {
   command_t left_c = get_simple_command(buff);
+  enum token_type token = buff->current_token;
 
-  if(buff->current_token == PIPE_T)
+  if(token == PIPE_T || token == AND_T || token == OR_T)
   {
     buff = get_token(buff);
     while(buff->current_token == NEWLINE_T)
         buff = get_token(buff);
     if(buff->current_token != WORD_T)
-      error (1, 0, "Line %d: Pipe: syntax error near unexpected token %s", buff->linenum, buff->current_string);
+      error (1, 0, "Line %d: syntax error near unexpected token %s", buff->linenum, buff->current_string);
     else
     {
-      command_t right_c = get_pipe_command(buff);
-      command_t pipe_c = checked_malloc(sizeof(struct command));
+      command_t right_c = get_simple_command(buff);
+      command_t s = checked_malloc(sizeof(struct command));
       
-      pipe_c->u.command[0] = left_c;
-      pipe_c->u.command[1] = right_c;
-      pipe_c->type = PIPE_COMMAND;
-      return pipe_c;
+      s->u.command[0] = left_c;
+      s->u.command[1] = right_c;
+      if(token == PIPE_T)
+        s->type = PIPE_COMMAND;
+      else if (token == AND_T)
+        s->type = AND_COMMAND;
+      else
+        s->type = OR_COMMAND;
+
+      return s;
     }
   }
   else
@@ -381,105 +404,6 @@ command_t get_pipe_command(command_stream_t buff)
     return left_c; 
   }
 }
-
-command_t get_or_command(command_stream_t buff)
-{
-  command_t left_c = get_pipe_command(buff);
-
-  if(buff->current_token == OR_T)
-  {
-    buff = get_token(buff);
-    while(buff->current_token == NEWLINE_T)
-        buff = get_token(buff);
-    if(buff->current_token != WORD_T)
-      error (1, 0, "Line %d: OR: syntax error near unexpected token %s", buff->linenum, buff->current_string);
-    else
-    {
-      command_t right_c = get_pipe_command(buff);
-      command_t or_c = checked_malloc(sizeof(struct command));
-      
-      or_c->u.command[0] = left_c;
-      or_c->u.command[1] = right_c;
-      or_c->type = OR_COMMAND;
-      return or_c;
-    }
-  }
-  else
-  {
-    return left_c; 
-  }
-}
-
-
-command_t get_and_command(command_stream_t buff)
-{
-  command_t left_c = get_or_command(buff);
-
-  if(buff->current_token == AND_T)
-  {
-    buff = get_token(buff);
-    while(buff->current_token == NEWLINE_T)
-        buff = get_token(buff);
-    if(buff->current_token != WORD_T)
-      error (1, 0, "Line %d: AND: syntax error near unexpected token %s", buff->linenum, buff->current_string);
-    else
-    {
-      command_t right_c = get_pipe_command(buff);
-      command_t AND_c = checked_malloc(sizeof(struct command));
-      
-      AND_c->u.command[0] = left_c;
-      AND_c->u.command[1] = right_c;
-      AND_c->type = AND_COMMAND;
-      return AND_c;
-    }
-  }
-  else
-  {
-    return left_c; 
-  }
-}
-
-command_t get_subshell_command(command_stream_t buff)
-{
-  command_t left_c = get_or_command(buff);
-
-  if(buff->current_token == AND_T)
-  {
-    buff = get_token(buff);
-    while(buff->current_token == NEWLINE_T)
-        buff = get_token(buff);
-    if(buff->current_token != WORD_T)
-      error (1, 0, "Line %d: AND: syntax error near unexpected token %s", buff->linenum, buff->current_string);
-    else
-    {
-      command_t right_c = get_pipe_command(buff);
-      command_t AND_c = checked_malloc(sizeof(struct command));
-      
-      AND_c->u.command[0] = left_c;
-      AND_c->u.command[1] = right_c;
-      AND_c->type = AND_COMMAND;
-      return AND_c;
-    }
-  }
-  else
-  {
-    return left_c; 
-  }
-}
-
-command_t get_command(command_stream_t buff)
-{
-  buff = get_token(buff);
-  command_t s;
-  if(buff->current_token == WORD_T || buff->current_token == INPUT_T
-    || buff->current_token == OUTPUT_T)
-  {
-    s = get_simple_command(buff);
-    return s;
-  }
-}
-
-
 
 command_stream_t
 make_command_stream (int (*get_next_byte) (void *),
@@ -589,7 +513,7 @@ error
   }
   */
 
-  command_t result = get_and_command(s);
+  command_t result = get_andorpipe_command(s);
   if (count == 1)
   {
     return NULL;
