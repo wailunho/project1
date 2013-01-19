@@ -368,11 +368,54 @@ command_t get_pipe_command(command_stream_t buff)
   }
 }
 
+command_t get_or_command(command_stream_t buff)
+{
+  command_t left_c = get_pipe_command(buff);
+
+  if(buff->current_token == OR_T)
+  {
+    buff = get_token(buff);
+    command_t right_c = get_pipe_command(buff);
+    command_t or_c = checked_malloc(sizeof(struct command));
+    
+    or_c->u.command[0] = left_c;
+    or_c->u.command[1] = right_c;
+    or_c->type = OR_COMMAND;
+    return or_c;
+  }
+  else
+  {
+    return left_c; 
+  }
+}
+
+
+command_t get_and_command(command_stream_t buff)
+{
+  command_t left_c = get_or_command(buff);
+
+  if(buff->current_token == AND_T)
+  {
+    buff = get_token(buff);
+    command_t right_c = get_or_command(buff);
+    command_t and_c = checked_malloc(sizeof(struct command));
+    
+    and_c->u.command[0] = left_c;
+    and_c->u.command[1] = right_c;
+    and_c->type = AND_COMMAND;
+    return and_c;
+  }
+  else
+  {
+    return left_c; 
+  }
+}
 command_t get_command(command_stream_t buff)
 {
   buff = get_token(buff);
   command_t s;
-  if(buff->current_token == WORD_T)
+  if(buff->current_token == WORD_T || buff->current_token == INPUT_T
+    || buff->current_token == OUTPUT_T)
   {
     s = get_simple_command(buff);
     return s;
@@ -487,7 +530,7 @@ error
   return NULL;
   }
   */
-  command_t result = get_pipe_command(s);
+  command_t result = get_and_command(s);
   if (count == 1)
   {
     return NULL;

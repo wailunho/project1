@@ -1,1 +1,1 @@
-asdsad  <ddsad ss      | d | e
+a && b ||c | d
