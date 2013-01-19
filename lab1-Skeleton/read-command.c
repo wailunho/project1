@@ -250,6 +250,7 @@ command_t get_simple_command(command_stream_t buff)
 {
   int numofchar = 0;
   int word_size = 40;
+  int firstword = 1;
   int current_line;
   command_t s = checked_malloc(sizeof(struct command));
   s->u.word = checked_malloc(sizeof(char*));
@@ -272,7 +273,10 @@ command_t get_simple_command(command_stream_t buff)
           word_size += 40;
           s->u.word[0] = checked_realloc(s->u.word[0], sizeof(char*) * word_size);
         }
-        strcat(s->u.word[0], " ");
+        if(firstword == 1)
+          firstword = 0;
+        else
+          strcat(s->u.word[0], " ");
         strcat(s->u.word[0], buff->current_string);
       }
       else if (buff->current_token == INPUT_T || buff->current_token == OUTPUT_T)
@@ -284,6 +288,10 @@ command_t get_simple_command(command_stream_t buff)
           s->u.word[0] = checked_realloc(s->u.word[0], sizeof(char*) * word_size);
         }
         strcat(s->u.word[0], buff->current_string);
+      }
+      else
+      {
+        break;
       }
     }
     //last token is a <
@@ -318,25 +326,55 @@ command_t get_simple_command(command_stream_t buff)
         strcat(s->u.word[0], buff->current_string);
       }
     }
-    else
+    else if (buff->last_token == PIPE_T || buff->last_token == NEWLINE_T)
     {
-      s->u.word[1] = NULL;
-      s->type = SIMPLE_COMMAND;
-      s->isfinal = 1;
-      return s;
+      numofchar += buff->numofchar;
+      if(word_size <= numofchar)
+      {
+        word_size += 40;
+        s->u.word[0] = checked_realloc(s->u.word[0], sizeof(char*) * word_size);
+      }
+      strcat(s->u.word[0], " ");
+      strcat(s->u.word[0], buff->current_string);
     }
-
+    else break;
     buff->last_token  = buff->current_token;
     current_line = buff->linenum;
+  }
+  s->u.word[1] = NULL;
+  s->type = SIMPLE_COMMAND;
+  s->isfinal = 1;
+  return s;
+}
+
+command_t get_pipe_command(command_stream_t buff)
+{
+  command_t left_c = get_simple_command(buff);
+
+  if(buff->current_token == PIPE_T)
+  {
+    buff = get_token(buff);
+    command_t right_c = get_pipe_command(buff);
+    command_t pipe_c = checked_malloc(sizeof(struct command));
+    
+    pipe_c->u.command[0] = left_c;
+    pipe_c->u.command[1] = right_c;
+    pipe_c->type = PIPE_COMMAND;
+    return pipe_c;
+  }
+  else
+  {
+    return left_c; 
   }
 }
 
 command_t get_command(command_stream_t buff)
 {
   buff = get_token(buff);
+  command_t s;
   if(buff->current_token == WORD_T)
   {
-    command_t s = get_simple_command(buff);
+    s = get_simple_command(buff);
     return s;
   }
 }
@@ -449,7 +487,7 @@ error
   return NULL;
   }
   */
-  command_t result = get_command(s);
+  command_t result = get_pipe_command(s);
   if (count == 1)
   {
     return NULL;
