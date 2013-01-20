@@ -16,10 +16,12 @@ int count = 0;
 command_stream_t get_token(command_stream_t buff);
 command_t get_complete_command(command_stream_t buff);
 command_t get_simple_command(command_stream_t buff);
-command_t get_andorpipe_command(command_stream_t buff);
+command_t get_andor_command(command_stream_t buff);
+command_t get_pipe_command(command_stream_t buff);
 
 enum token_type
   {
+  START_T,
   WORD_T, //ASCII letters, digits, or any of: ! % + , - . / : @ ^ _
   SEMICOLON_T, // ;
   PIPE_T, // |
@@ -48,6 +50,8 @@ struct command_stream
   enum token_type current_token;
   int (*get_next_byte) (void *);
   void *get_next_byte_argument;
+  int finalcommand;
+  int firstcommand;
 };
 
 void increase_stream_size(command_stream_t s)
@@ -250,41 +254,26 @@ command_stream_t get_token_array(command_stream_t buff)
   buff->stream[1] = NULL;
   return buff;
 }
-command_t get_complete_command(command_stream_t buff)
-{
-  buff = get_token(buff);
-  command_t s;
-  if(buff->current_token == WORD_T || buff->current_token == INPUT_T
-    || buff->current_token == OUTPUT_T)
-  {
-    s = get_simple_command(buff);
-    return s;
-  }
-}
 
 command_t get_simple_command(command_stream_t buff)
 {
   int numofchar = 0;
   int word_size = 40;
-  int firstword = 1;
   int current_line;
   command_t s = checked_malloc(sizeof(struct command));
   s->u.word = checked_malloc(sizeof(char*));
   s->u.word[0] = checked_malloc(sizeof(char*) * word_size);
   s->isfinal  = 0;
-  strcpy(s->u.word[0], buff->current_string);
-  buff->last_token  = buff->current_token;
+  strcpy(s->u.word[0], "\0");
+  if(buff->last_token != PIPE_T && buff->last_token != AND_T && buff->last_token != OR_T)
+   buff->last_token  = buff->current_token;
   current_line = buff->linenum;
 
-  while(buff = get_token(buff))
+  while(1)
   {
-    //ignore newlines before any word
-    while(buff->current_token == NEWLINE_T)
-    {
-      buff = get_token(buff);
-      buff->last_token  = buff->current_token;
-      current_line = buff->linenum;
-    }
+    if(buff->last_token != PIPE_T && buff->last_token != AND_T && buff->last_token != OR_T)
+     buff = get_token(buff);
+
     //reading any word
     if(buff->last_token == WORD_T)
     {
@@ -296,10 +285,12 @@ command_t get_simple_command(command_stream_t buff)
           word_size += 40;
           s->u.word[0] = checked_realloc(s->u.word[0], sizeof(char*) * word_size);
         }
-        if(firstword == 1)
-          firstword = 0;
+        if(buff->firstcommand == 1)
+        {
+          buff->firstcommand = 0;
+        }
         else
-          strcat(s->u.word[0], " ");
+         strcat(s->u.word[0], " ");
         strcat(s->u.word[0], buff->current_string);
       }
       else if (buff->current_token == INPUT_T || buff->current_token == OUTPUT_T)
@@ -349,7 +340,8 @@ command_t get_simple_command(command_stream_t buff)
         strcat(s->u.word[0], buff->current_string);
       }
     }
-    else if (buff->last_token == PIPE_T || buff->last_token == NEWLINE_T)
+    else if (buff->last_token == NEWLINE_T || buff->last_token == AND_T || buff->last_token == OR_T
+      || buff->last_token == PIPE_T)
     {
       numofchar += buff->numofchar;
       if(word_size <= numofchar)
@@ -357,7 +349,7 @@ command_t get_simple_command(command_stream_t buff)
         word_size += 40;
         s->u.word[0] = checked_realloc(s->u.word[0], sizeof(char*) * word_size);
       }
-      strcat(s->u.word[0], " ");
+      //strcat(s->u.word[0], " ");
       strcat(s->u.word[0], buff->current_string);
     }
     else break;
@@ -366,16 +358,15 @@ command_t get_simple_command(command_stream_t buff)
   }
   s->u.word[1] = NULL;
   s->type = SIMPLE_COMMAND;
-  s->isfinal = 1;
   return s;
 }
 
-command_t get_andorpipe_command(command_stream_t buff)
+command_t get_andor_command(command_stream_t buff)
 {
-  command_t left_c = get_simple_command(buff);
+  command_t left_c = get_pipe_command(buff);
   enum token_type token = buff->current_token;
 
-  if(token == PIPE_T || token == AND_T || token == OR_T)
+  if(token == AND_T || token == OR_T)
   {
     buff = get_token(buff);
     while(buff->current_token == NEWLINE_T)
@@ -384,14 +375,14 @@ command_t get_andorpipe_command(command_stream_t buff)
       error (1, 0, "Line %d: syntax error near unexpected token %s", buff->linenum, buff->current_string);
     else
     {
-      command_t right_c = get_simple_command(buff);
+
+      buff->last_token = token;
+      command_t right_c = get_andor_command(buff);
       command_t s = checked_malloc(sizeof(struct command));
       
       s->u.command[0] = left_c;
       s->u.command[1] = right_c;
-      if(token == PIPE_T)
-        s->type = PIPE_COMMAND;
-      else if (token == AND_T)
+      if (token == AND_T)
         s->type = AND_COMMAND;
       else
         s->type = OR_COMMAND;
@@ -402,6 +393,48 @@ command_t get_andorpipe_command(command_stream_t buff)
   else
   {
     return left_c; 
+  }
+}
+
+command_t get_pipe_command(command_stream_t buff)
+{
+  command_t left_c = get_simple_command(buff);
+  enum token_type token = buff->current_token;
+
+  if(token == PIPE_T )
+  {
+    buff = get_token(buff);
+    while(buff->current_token == NEWLINE_T)
+        buff = get_token(buff);
+    if(buff->current_token != WORD_T)
+      error (1, 0, "Line %d: syntax error near unexpected token %s", buff->linenum, buff->current_string);
+    else
+    {
+      buff->last_token = PIPE_T;
+      command_t right_c = get_pipe_command(buff);
+      command_t s = checked_malloc(sizeof(struct command));
+      
+      s->u.command[0] = left_c;
+      s->u.command[1] = right_c;
+      s->type = PIPE_COMMAND;
+      return s;
+    }
+  }
+  else
+  {
+    return left_c; 
+  }
+}
+
+command_t get_complete_command(command_stream_t buff)
+{
+  buff = get_token(buff);
+  command_t s;
+  if(buff->current_token == WORD_T || buff->current_token == INPUT_T
+    || buff->current_token == OUTPUT_T)
+  {
+    s = get_simple_command(buff);
+    return s;
   }
 }
 
@@ -423,6 +456,8 @@ make_command_stream (int (*get_next_byte) (void *),
   buff->current_token = WORD_T;
   buff->get_next_byte = get_next_byte;
   buff->get_next_byte_argument = get_next_byte_argument;
+  buff->finalcommand = 0;
+  buff->firstcommand = 1;
   
   return buff;
 }
@@ -512,15 +547,16 @@ error
   return NULL;
   }
   */
-
-  command_t result = get_andorpipe_command(s);
-  if (count == 1)
+  command_t result = get_andor_command(s);
+  if (s->finalcommand == 0)
   {
-    return NULL;
+    if(s->current_token == EOF_T)
+      s->finalcommand  = 1;
+    return result;
   }
   else
   {
-    count++;
-    return result;
+    return NULL;
   }
+
 }
