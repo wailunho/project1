@@ -110,7 +110,6 @@ command_stream_t get_token(command_stream_t buff)
     else if (ch == ';')
     {
       buff->current_token = SEMICOLON_T;
-      buff->current_string[numofchar++] = ';';
       buff->current_string[numofchar] = '\0';
       token_finished = 1;
     }
@@ -232,29 +231,6 @@ command_stream_t get_token(command_stream_t buff)
   return buff;
 }
 
-command_stream_t get_token_array(command_stream_t buff)
-{
-  int numofchar = 0;
-  free(buff->stream);
-  buff->stream = checked_malloc(sizeof (char*));
-  buff->stream[0] = checked_malloc(sizeof (char*) * buff->stream_size);
-  buff = get_token(buff);
-  strcpy(buff->stream[0], "\0");
-
-  while(buff->current_token != NEWLINE_T && buff->current_token != SEMICOLON_T 
-    && buff->current_token != EOF_T )
-  {
-    numofchar += buff->numofchar;
-    if(buff->stream_size <= numofchar)
-      increase_stream_size(buff);
-
-    strcat(buff->stream[0], buff->current_string);
-    buff = get_token(buff);
-  }
-  buff->stream[1] = NULL;
-  return buff;
-}
-
 command_t get_simple_command(command_stream_t buff)
 {
   int numofchar = 0;
@@ -275,8 +251,17 @@ command_t get_simple_command(command_stream_t buff)
      buff = get_token(buff);
 
     //reading any word
-    if(buff->last_token == WORD_T)
+    if(buff->last_token == WORD_T || buff->last_token == START_T)
     {
+      while(buff->last_token == START_T && (buff->current_token == NEWLINE_T || 
+        buff->current_token == SEMICOLON_T))
+      {
+        if(buff->current_token == SEMICOLON_T)
+          error (1, 0, "Line %d: syntax error near unexpected token `;'", buff->linenum);
+        else
+          buff = get_token(buff);
+      }
+
       if(buff->current_token == WORD_T)
       {
         numofchar += buff->numofchar;
@@ -340,19 +325,37 @@ command_t get_simple_command(command_stream_t buff)
         strcat(s->u.word[0], buff->current_string);
       }
     }
-    else if (buff->last_token == NEWLINE_T || buff->last_token == AND_T || buff->last_token == OR_T
+    else if (buff->last_token == SEMICOLON_T || buff->last_token == NEWLINE_T || buff->last_token == AND_T || buff->last_token == OR_T
       || buff->last_token == PIPE_T)
     {
+      if(buff->last_token == NEWLINE_T && buff->current_token == SEMICOLON_T)
+        error (1, 0, "Line %d: syntax error near unexpected token `;'", buff->linenum);
       numofchar += buff->numofchar;
       if(word_size <= numofchar)
       {
         word_size += 40;
         s->u.word[0] = checked_realloc(s->u.word[0], sizeof(char*) * word_size);
       }
-      //strcat(s->u.word[0], " ");
       strcat(s->u.word[0], buff->current_string);
     }
-    else break;
+    else if (buff->last_token == OPEN_PAREN_T)
+    {
+      strcat(s->u.word[0], buff->current_string);
+      s = get_simple_command(buff);
+      if (buff->current_token != CLOSE_PAREN_T)
+        error (1, 0, "Line %d: syntax error: expected token )", buff->linenum);
+      else
+      {
+        strcat(s->u.word[0], buff->current_string);
+        s->u.word[1] = NULL;
+        s->type = SUBSHELL_COMMAND;
+        return s;
+      }
+    }
+    else 
+      {
+        break;
+      }
     buff->last_token  = buff->current_token;
     current_line = buff->linenum;
   }
@@ -368,6 +371,8 @@ command_t get_andor_command(command_stream_t buff)
 
   if(token == AND_T || token == OR_T)
   {
+    if(buff->last_token != WORD_T)
+      error (1, 0, "Line %d: syntax error near unexpected token %s", buff->linenum, buff->current_string);
     buff = get_token(buff);
     while(buff->current_token == NEWLINE_T)
         buff = get_token(buff);
@@ -403,6 +408,8 @@ command_t get_pipe_command(command_stream_t buff)
 
   if(token == PIPE_T )
   {
+    if(buff->last_token != WORD_T)
+      error (1, 0, "Line %d: syntax error near unexpected token %s", buff->linenum, buff->current_string);
     buff = get_token(buff);
     while(buff->current_token == NEWLINE_T)
         buff = get_token(buff);
@@ -436,7 +443,14 @@ command_t get_complete_command(command_stream_t buff)
     s = get_simple_command(buff);
     return s;
   }
+  else if(buff->current_token == OPEN_PAREN_T)
+  {
+    s = get_simple_command(buff);
+    return s;
+  }
 }
+
+
 
 command_stream_t
 make_command_stream (int (*get_next_byte) (void *),
@@ -453,7 +467,7 @@ make_command_stream (int (*get_next_byte) (void *),
   buff->stream = checked_malloc(sizeof (char*));
   buff->linenum = 1;
   buff->current_string[0] = '\0';
-  buff->current_token = WORD_T;
+  buff->current_token = START_T;
   buff->get_next_byte = get_next_byte;
   buff->get_next_byte_argument = get_next_byte_argument;
   buff->finalcommand = 0;
@@ -465,88 +479,6 @@ make_command_stream (int (*get_next_byte) (void *),
 command_t
 read_command_stream (command_stream_t s)
 {
- 
-  /*
-  TODO: 
-     WORD_T
-           word=s->stream
-     PIPE_T, 
-           fill in command[0] (left side of pipe)
-    
-  */
-
- /*
-  s = get_token(s);
-  if(s->current_token != EOF_T)
-  {
-    command_t command_out = checked_malloc( sizeof(struct command) );
-   
-    if(s->current_token == WORD_T)
-    {
-        printf("found a word!: %s\n", s->current_string);
-        command_out->type = SIMPLE_COMMAND;
-        command_out->u.word = s->stream;
-    }
-    else if(s->current_token == PIPE_T)
-    {
-  printf("found a pipe!: %s\n", s->current_string);
-        command_out->type = SIMPLE_COMMAND;
-        command_out->u.word = s->stream;
-    }
-    else if (s->current_token == AND_T)
-    {
-  printf("found an AND: %s\n", s->current_string);
-        command_out->type = SIMPLE_COMMAND;
-        command_out->u.word = s->stream;
-    }
-    else if(s->current_token == OR_T)
-    {
-  printf("found an OR: %s\n", s->current_string);
-        command_out->type = SIMPLE_COMMAND;
-        command_out->u.word = s->stream;
-    }
-    else if (s->current_token == INPUT_T)
-    {   //still default, where does input go?
-  printf("Found an INPUT: %s\n", s->current_string);
-        command_out->type = SIMPLE_COMMAND;
-        command_out->u.word = s->stream;
-    }
-    else if(s->current_token == OUTPUT_T)
-    {   //still default, where does output go?
-        printf("Found an OUTPUT: %s\n", s->current_string);
-        command_out->type = SIMPLE_COMMAND;
-        command_out->u.word = s->stream;
-    }
-    else if(s->current_token == OPEN_PAREN_T)
-    {   //default, should fill in SUBSHELL_COMMAND
-        printf("Found an OPEN paren: %s\n", s->current_string);
-        command_out->type = SIMPLE_COMMAND;
-        command_out->u.word = s->stream;
-    }
-    else if(s->current_token == CLOSE_PAREN_T)
-    {    //default, should fill in subshell_command
-         printf("Found a CLOSE PAREN: %s\n", s->current_string);
-         command_out->type = SIMPLE_COMMAND;
-         command_out->u.word = s->stream;
-    }
-    else if(s->current_token ==NEWLINE_T || s->current_token == SEMICOLON_T)
-    {   //default
-  //skip new lines
-  command_out->type = SIMPLE_COMMAND;
-        command_out->u.word = s->stream;
-    }
-error
-    //printf("Testing: token type is : %s\n", s->current_string);
-    //command_out->type = SIMPLE_COMMAND;
-    //command_out->u.word = s->stream;
- 
-   return command_out;
-  }
-  else
-  {
-  return NULL;
-  }
-  */
   command_t result = get_andor_command(s);
   if (s->finalcommand == 0)
   {
@@ -558,5 +490,4 @@ error
   {
     return NULL;
   }
-
 }
