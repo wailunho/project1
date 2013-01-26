@@ -11,5 +11,4 @@ Wai Lun Ho
 UID: 103930546
 
 Comments on part a:
-Does not work if subshell existed in file.
-Generated tree is incorrect.
+Works
