@@ -1,1 +1,4 @@
-a && b ||c | d
+clear
+ls
+clear
+ls -s
