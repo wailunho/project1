@@ -22,6 +22,9 @@ struct command
   char *input;
   char *output;
 
+  //added for execute command
+  bool canfork;  //true if can fork, false if cant, used for pipe commands
+
   union
   {
     // for AND_COMMAND, SEQUENCE_COMMAND, OR_COMMAND, PIPE_COMMAND:
