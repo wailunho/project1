@@ -123,8 +123,18 @@ command_stream_t get_token(command_stream_t buff)
           buff->linenum++;
         else if (ch == '#')
         {
-          while((ch = buff->get_next_byte(buff->get_next_byte_argument)) != '\n');
-          buff->linenum++;
+          ch = buff->get_next_byte(buff->get_next_byte_argument);
+          while(ch != '\n')
+          {
+            if(ch == EOF)
+            {
+              token_finished = 1;
+              buff->next_token  = EOF_T;
+              break;
+            }
+            buff->linenum++;
+            ch = buff->get_next_byte(buff->get_next_byte_argument);
+          }
         }  
         else if(ch == EOF)
         {
@@ -253,6 +263,7 @@ command_t get_simple_command(command_stream_t buff)
   }
   s->u.word[i] = '\0';
   s->type = SIMPLE_COMMAND;
+  s->canfork = true;
   return s;
 }
 
@@ -273,7 +284,7 @@ command_t get_andor_command(command_stream_t buff)
 
     s->u.command[0] = left_c;
     s->u.command[1] = right_c;
-
+    s->canfork = true;
     left_c = s;
   }
   return left_c; 
@@ -292,6 +303,7 @@ command_t get_pipe_command(command_stream_t buff)
     s->u.command[0] = left_c;
     s->u.command[1] = right_c;
     s->type = PIPE_COMMAND;
+    s->canfork = true;
     left_c = s;
   }
   return left_c; 
@@ -311,6 +323,7 @@ command_t get_complete_command(command_stream_t buff)
     s->u.command[0] = left_c;
     s->u.command[1] = right_c;
     s->type = SEQUENCE_COMMAND;
+    s->canfork= true;
     left_c = s;
   }
   return left_c;
@@ -330,7 +343,8 @@ command_t get_subshell_command(command_stream_t buff)
   command_t s = checked_malloc(sizeof(struct command));
   s->type = SUBSHELL_COMMAND;
   s->u.subshell_command = c;
-  
+  s->canfork = true;  
+
   return s;
 }
 
