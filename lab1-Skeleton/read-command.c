@@ -10,7 +10,6 @@
 
 //added
 #include "alloc.h"
-int count = 0;
 /* FIXME: You may need to add #include directives, macro definitions,
    static function definitions, etc.  */
 command_stream_t get_token(command_stream_t buff);
@@ -23,7 +22,6 @@ command_t get_subshell_command(command_stream_t buff);
 
 enum token_type
   {
-  START_T,
   WORD_T, //ASCII letters, digits, or any of: ! % + , - . / : @ ^ _
   SEMICOLON_T, // ;
   PIPE_T, // |
@@ -42,8 +40,6 @@ enum token_type
 struct command_stream
 {
   int numofchar;
-  char** stream;
-  int stream_size;
   char* next_string;
   char* current_string;
   int token_size;
@@ -52,8 +48,6 @@ struct command_stream
   enum token_type current_token;
   int (*get_next_byte) (void *);
   void *get_next_byte_argument;
-  int finalcommand;
-  int firstcommand;
 };
 
 void increase_token_size(command_stream_t s)
@@ -417,17 +411,9 @@ make_command_stream (int (*get_next_byte) (void *),
   buff->token_size = 20;
   buff->current_string = checked_malloc(sizeof(char*) * buff->token_size);
   buff->next_string = checked_malloc(sizeof(char*) * buff->token_size);
-  buff->stream_size = 30;
-  buff->stream = checked_malloc(sizeof (char*));
   buff->linenum = 1;
-  buff->current_string[0] = '\0';
-  buff->current_token = WORD_T;
-  buff->next_string[0] = '\0';
-  buff->next_token = WORD_T;
   buff->get_next_byte = get_next_byte;
   buff->get_next_byte_argument = get_next_byte_argument;
-  buff->finalcommand = 0;
-  buff->firstcommand = 1;
   
   return buff;
 }
