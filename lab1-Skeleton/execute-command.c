@@ -46,14 +46,17 @@ void swap_descriptors(char c, command_t x, int *fdnew, int fdold)
 	case 's':
 		if(x->input !=NULL)
 		{
-			fprintf(stderr, "Input file failed to open\n");
-			exit(-1);
-		}
-		else
-		{
-			close(0);
-			dup2(*fdnew, 0);
-			close(*fdnew);
+			if((*fdnew = open(x->input, O_RDONLY)) == -1)
+			{
+				fprintf(stderr, "Input file failed to open\n");
+				exit(-1);
+			}
+			else
+			{
+				close(0);
+				dup2(*fdnew, 0);
+				close(*fdnew);
+			}
 		}
 		if(x->output !=NULL)
 		{
@@ -100,7 +103,7 @@ simple_command(command_t x, bool time_travel, bool andor)
 
     //swap IO?
 
-    swap_descriptors('r', x, &fdnew, 0);
+    swap_descriptors('s', x, &fdnew, 0);
     if(x->canfork == true)
     {
 	//fork process
