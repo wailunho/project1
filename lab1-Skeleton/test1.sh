@@ -6,7 +6,8 @@
 #cat < test3 > test2			#passed
 
 #testing |
-#ls | sort						#failed
+#ls 	| echo 111			#failed
+echo 666 | cat
 
 #testing &&
 #true && false && ls 			#passed
@@ -21,5 +22,5 @@
 #: : : 							#failed
 
 #testing for subshell command
-#(echo 11222 > test2	)			#failed (read-command.c)
+#(echo 11222 > test2	)		#passed
 
