@@ -93,7 +93,7 @@ void swap_descriptors(char c, command_t x, int *fdnew, int fdold)
 			exit(-1);
 		}
 		break;
-	
+
 	default:
 		fprintf(stderr, "unexpected error detected\n");
 		exit(-1);
@@ -238,7 +238,7 @@ pipe_command(command_t x, bool time_travel)
 			c_value1 = WEXITSTATUS(r_value1);
 		}
 	}
-	
+
 	//==================END CHILD PROCESS ============
 
 	//first child exited
@@ -260,7 +260,7 @@ pipe_command(command_t x, bool time_travel)
 			close(0);
 			dup2(fd[0], 0);
 			close(fd[0]);
-		
+
 			x->u.command[1]->canfork= false;
 			r_value2 = new_command(x->u.command[1], time_travel, false);
 			_exit(r_value2);
@@ -279,7 +279,7 @@ pipe_command(command_t x, bool time_travel)
 			{
 				c_value2 = WEXITSTATUS(r_value2);
 			}
-			
+
 		}
 	}
 
@@ -292,7 +292,7 @@ sequence_command(command_t x, bool time_travel)
 {
 	int r_value1=0;
 	int r_value2=0;
-	
+
 	if(x->u.command[0] != NULL){
 		r_value1 = new_command(x->u.command[0], time_travel, false);
 	}
@@ -408,7 +408,7 @@ execute_command (command_t x, bool time_travel)
   }
   else {
 	run = new_command(x, time_travel, false);
-	
+
   }
 }
 
@@ -419,5 +419,4 @@ command_status (command_t c)
 {
   return c->status;
 }
-
 
