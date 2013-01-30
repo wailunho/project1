@@ -48,6 +48,7 @@ struct command_stream
   enum token_type current_token;
   int (*get_next_byte) (void *);
   void *get_next_byte_argument;
+  int numofopen;
 };
 
 void increase_token_size(command_stream_t s)
@@ -123,8 +124,11 @@ command_stream_t get_token(command_stream_t buff)
           buff->linenum++;
         else if (ch == '#')
         {
-          while((ch = buff->get_next_byte(buff->get_next_byte_argument)) != '\n');
-          buff->linenum++;
+          ch = buff->get_next_byte(buff->get_next_byte_argument);
+          while(ch != '\n' && ch != EOF)
+            ch = buff->get_next_byte(buff->get_next_byte_argument);
+
+          ungetc(ch, buff->get_next_byte_argument);
         }  
         else if(ch == EOF)
         {
@@ -235,7 +239,8 @@ command_t get_simple_command(command_stream_t buff)
 
   buff = get_token(buff);
   if(buff->current_token != WORD_T)
-      error (1, 0, "Line %d: 1syntax error near unexpected token %s", buff->linenum, buff->next_string);
+      error (1, 0, "Line %d: syntax error near unexpected token %s, it needs to be a WORD"
+              , buff->linenum, buff->next_string);
 
   s->u.word[i] = checked_malloc(sizeof(char*) * strlen(buff->current_string));
   strcpy(s->u.word[i++], buff->current_string);
@@ -340,19 +345,19 @@ command_t get_subshell_command(command_stream_t buff)
 
 command_t get_command(command_stream_t buff)
 {
-  //0 for simple command, 1 for subshell command
-  int issimple = 0;
   command_t s;
 
   while(buff->next_token == NEWLINE_T && (buff = get_token(buff)));
 
   if(buff->next_token == OPEN_PAREN_T)
   {
+    buff->numofopen++;
     s = get_subshell_command(buff);
-    issimple = 1;
   }
   else
+  {
     s = get_simple_command(buff);
+  }
 
   if(buff->next_token == INPUT_T)
   {
@@ -392,10 +397,8 @@ command_t get_command(command_stream_t buff)
       error (1, 0, "Line %d: syntax error: < followed by a word followed by >", buff->linenum);
   }
   else if(buff->next_token == CLOSE_PAREN_T)
-  {
-    if(issimple = 1)
-      error (1, 0, "Line %d: syntax error: missing a ( before )", buff->linenum);
-  }
+    buff->numofopen--;
+
   return s;
 }
 
@@ -414,6 +417,7 @@ make_command_stream (int (*get_next_byte) (void *),
   buff->linenum = 1;
   buff->get_next_byte = get_next_byte;
   buff->get_next_byte_argument = get_next_byte_argument;
+  buff->numofopen = 0;
   
   return buff;
 }
@@ -427,6 +431,8 @@ read_command_stream (command_stream_t s)
   else
   {
     command_t result = get_andor_command(s);
+    if(s->numofopen != 0)
+      error (1, 0, "Line %d: syntax error: Numbers of ( and ) do not match", s->linenum);
     return result;
   }
 }
