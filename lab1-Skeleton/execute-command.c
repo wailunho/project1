@@ -39,13 +39,19 @@ Plan
 4) AND/ORs
 */
 //
+
+
+//0-stdin
+//1-stdout
 void swap_descriptors(char c, command_t x, int *fdnew, int fdold)
 {
 
 	switch(c){
-	case 's':
+	case 's':  //swap case-->swap file descriptors
+		//check if input file exists
 		if(x->input !=NULL)
 		{
+			//swap fd with stdin and file input
 			if((*fdnew = open(x->input, O_RDONLY)) == -1)
 			{
 				fprintf(stderr, "Input file failed to open\n");
@@ -58,11 +64,13 @@ void swap_descriptors(char c, command_t x, int *fdnew, int fdold)
 				close(*fdnew);
 			}
 		}
+		//check if output file exists
 		if(x->output !=NULL)
 		{
+			//swap fd with stdout and file output
 			if((*fdnew = open(x->output, O_WRONLY | O_CREAT, 0666)) == -1)
 			{
-				fprintf(stderr, "failed to create file\n");
+				fprintf(stderr, "failed to create output file\n");
 				exit(-1);
 			}
 			else
@@ -73,8 +81,9 @@ void swap_descriptors(char c, command_t x, int *fdnew, int fdold)
 			}
 		}
 		break;
-	case 'r':
-		if(dup2(*fdnew, fdold) < 0)
+
+	case 'r':	//reset file descriptor case
+		if(dup2(*fdnew, fdold) < 0)	//copy the new fd to the old fd
 		{
 			fprintf(stderr, "could not reset input | output\n");
 			exit(-1);
@@ -126,18 +135,21 @@ simple_command(command_t x, bool time_travel, bool andor)
 		fprintf(stderr, "failed to fork\n");
 		return -1;
 	}
-	else
+	else	//wait for parent process to finish
 	{
+
+		//wait for process to finish, store turn value in r_value
 		if(waitpid(-1,&r_value, 0) < 0)
 		{
 			fprintf(stderr, "wait failure\n");
 			return -1;
 		}
+		//close fdnew, and reset fdout and fdin
 		close(fdnew);
 		swap_descriptors('r', x, &fdout, 1);
 		swap_descriptors('r', x, &fdin, 0);
 
-		if(WIFEXITED(r_value))
+		if(WIFEXITED(r_value))//if the child exited
 		{
 			c_value =WEXITSTATUS(r_value);	
 		}
@@ -171,10 +183,10 @@ pipe_command(command_t x, bool time_travel)
 	int fd[2] = {-1, -1};	//fd has the file descriptors for parent and child
 	pid_t childpid1;	//pid of first child
 	pid_t childpid2;	//pid of second child
-	int p_r_value1;		//return value of first parent
-	int p_r_value2;		//return value of second parent
-	int c_r_value1 = -1;	//first child's return value
-	int c_r_value2 = -1;	//second child's return value
+	int r_value1;		//return value of first parent
+	int r_value2;		//return value of second parent
+	int c_value1 = -1;	//first child's return value
+	int c_value2 = -1;	//second child's return value
 
 	if(pipe(fd) < 0)
 	{
@@ -199,41 +211,41 @@ pipe_command(command_t x, bool time_travel)
 
 		close(fd[0]);	//close parent's read
 		close(1);	//close stdout
-		dup2(fd[1], 1);	//child writes to std out
+		dup2(fd[1], 1);	//set stdout to child fd
 		close(fd[1]);   //close child write
 
 		x->u.command[0]->canfork = false; //prevents additional forking
-		p_r_value1  = new_command(x->u.command[0], time_travel, false);
-		_exit(p_r_value1);	
+		r_value1  = new_command(x->u.command[0], time_travel, false);
+		_exit(r_value1);	
 	}
 	else  //run first parent process
 	{
 		close(fd[1]); //close child's read
-		if(waitpid(childpid1, &(p_r_value1),0) < 0)
+		if(waitpid(childpid1, &(r_value1),0) < 0)
 		{
 			fprintf(stderr, "child 1 wait fail\n");
-			x->u.command[0]->status = p_r_value1;
+			x->u.command[0]->status = r_value1;
 			return -1;
 
 		}
-		x->u.command[0]->status = p_r_value1;
-		if(WIFEXITED(p_r_value1))  //child exited properly
+		x->u.command[0]->status = r_value1;
+		if(WIFEXITED(r_value1))  //child exited properly
 		{
-			c_r_value1 = WEXITSTATUS(p_r_value1);
+			c_value1 = WEXITSTATUS(r_value1);
 		}
 	}
 	
 	//==================END CHILD PROCESS ============
 
-	//first child did not exit
-	if(c_r_value1 ==0 )
+	//first child exited
+	if(c_value1 ==0 )
 	{	//fork the second child
-		if(c_r_value2 = fork() < 0)
+		if(childpid2 = fork() < 0)
 		{
 			fprintf(stderr, "2nd child failed to fork\n");
 			return -1;
 		}
-		else if (c_r_value2 ==0)
+		else if (childpid2 ==0)
 		{
 			if(x->u.command[1]->input != NULL)
 			{
@@ -246,28 +258,28 @@ pipe_command(command_t x, bool time_travel)
 			close(fd[0]);
 		
 			x->u.command[1]->canfork= false;
-			p_r_value2 = new_command(x->u.command[1], time_travel, false);
-			_exit(p_r_value2);
+			r_value2 = new_command(x->u.command[1], time_travel, false);
+			_exit(r_value2);
 		}
 		else	
 		{
 			close(fd[0]);
-			if(waitpid(c_r_value2, &p_r_value2, 0)<0)
+			if(waitpid(childpid2, &r_value2, 0)<0)
 			{
 				fprintf(stderr, "child2 wait fail\n");
-				x->u.command[1]->status = p_r_value2;
+				x->u.command[1]->status = r_value2;
 				return -1;
 			}
-			x->u.command[1]->status = p_r_value2;
-			if(WIFEXITED(p_r_value2))
+			x->u.command[1]->status = r_value2;
+			if(WIFEXITED(r_value2))
 			{
-				c_r_value2 = WEXITSTATUS(p_r_value2);
+				c_value2 = WEXITSTATUS(r_value2);
 			}
 			
 		}
 	}
 
-	return (c_r_value1 || c_r_value2);
+	return (c_value1 || c_value2);
 
 }
 
