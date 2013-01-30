@@ -396,7 +396,7 @@ command_t get_command(command_stream_t buff)
     if(buff->next_token == INPUT_T)
       error (1, 0, "Line %d: syntax error: < followed by a word followed by >", buff->linenum);
   }
-  else if(buff->next_token == CLOSE_PAREN_T)
+  if(buff->next_token == CLOSE_PAREN_T)
     buff->numofopen--;
 
   return s;
