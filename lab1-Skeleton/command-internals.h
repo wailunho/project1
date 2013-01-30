@@ -23,7 +23,7 @@ struct command
   char *output;
 
   //added for execute command
-  bool canfork;  //true if can fork, false if cant, used for pipe commands
+  int canfork;  //true if can fork, false if cant, used for pipe commands
 
   union
   {

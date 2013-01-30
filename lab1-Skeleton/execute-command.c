@@ -2,10 +2,6 @@
 
 #include "command.h"
 #include "command-internals.h"
-
-#include <stdio.h>
-
-
 #include "alloc.h"
   
 #include <error.h>
@@ -113,11 +109,8 @@ simple_command(command_t x, bool time_travel, bool andor)
     pid_t t;
 
 
-
-    //swap IO?
-
     swap_descriptors('s', x, &fdnew, 0);
-    if(x->canfork == true)
+    if(x->canfork == 1)
     {
 	//fork process
 	if((t = fork()) <0)
@@ -177,13 +170,63 @@ simple_command(command_t x, bool time_travel, bool andor)
             }
     }    
     x->status = r_value;
+    printf("returns successfully\n");
     return c_value;
 }
 
 int
 pipe_command(command_t x, bool time_travel)
 {
-
+/*
+	int pipefd[2];
+	pipe(pipefd);
+	pid_t p;
+	if( (p=fork()) ==0){ //child thread
+		dup2(pipefd[0],0);
+		close(pipefd[1]);
+		int result = new_command(x->u.command[1], false, false);
+		close(pipefd[0]);
+		close(0);
+		exit(1);
+	}
+	else if(p>0){//father
+		pid_t p2; 
+		if((p2=fork())==0){
+			dup2(pipefd[1],1);
+			close(pipefd[0]);
+			new_command(x->u.command[0], false, false);
+			close(pipefd[1]); //finish pipeing
+		//	close(1);
+		//	printf("lalala");
+			exit(1);
+		}
+		else{
+			close(pipefd[0]);
+			close(pipefd[1]);
+			int status;
+			if(waitpid(p2,&status,0)>0){
+				if(WIFEXITED(status)){
+					return WEXITSTATUS(status);
+				}
+				else if(WIFSIGNALED(status)){
+					return WTERMSIG(status);
+				}
+				else{
+					perror("Command execution is interrupted\n");
+					return 0;
+				}
+			}
+			else{
+				perror("Cannot get pipeline return\n");
+				return 0;
+			}
+		}
+	}
+	else{	//cannot create child process
+		perror("fork");
+		return 0;
+	}
+*/
 	int fd[2] = {-1, -1};	//fd has the file descriptors for parent and child
 	pid_t childpid1;	//pid of first child
 	pid_t childpid2;	//pid of second child
@@ -192,15 +235,14 @@ pipe_command(command_t x, bool time_travel)
 	int c_value1 = -1;	//first child's return value
 	int c_value2 = -1;	//second child's return value
 
-	if(pipe(fd) < 0)
+	if((pipe(fd)) < 0)
 	{
 		fprintf(stderr, "failed pipe\n");
 		return -1;
 	}
 
-
 	//======= CHILD PROCESS 1 =============//
-	if( childpid1 = fork()  < 0)
+	if( (childpid1 = fork())  < 0)
 	{
 		fprintf(stderr, "failed to fork\n");
 		return -1;
@@ -212,14 +254,15 @@ pipe_command(command_t x, bool time_travel)
 			fprintf(stderr, "No redirect location.\n");
 			_exit(-1);//exit the calling process immediately
 		}
-
 		close(fd[0]);	//close parent's read
 		close(1);	//close stdout
 		dup2(fd[1], 1);	//set stdout to child fd
 		close(fd[1]);   //close child write
-
-		x->u.command[0]->canfork = false; //prevents additional forking
+		x->u.command[0]->canfork = 0; //prevents additional forking
+		
+		//printf(stderr, "starting process\n");
 		r_value1  = new_command(x->u.command[0], time_travel, false);
+		//fprintf(stderr, "exiting process\n");
 		_exit(r_value1);	
 	}
 	else  //run first parent process
@@ -240,11 +283,11 @@ pipe_command(command_t x, bool time_travel)
 	}
 	
 	//==================END CHILD PROCESS ============
-
+	
 	//first child exited
 	if(c_value1 ==0 )
 	{	//fork the second child
-		if(childpid2 = fork() < 0)
+		if((childpid2 = fork()) < 0)
 		{
 			fprintf(stderr, "2nd child failed to fork\n");
 			return -1;
@@ -261,7 +304,7 @@ pipe_command(command_t x, bool time_travel)
 			dup2(fd[0], 0);
 			close(fd[0]);
 		
-			x->u.command[1]->canfork= false;
+			x->u.command[1]->canfork= 0;
 			r_value2 = new_command(x->u.command[1], time_travel, false);
 			_exit(r_value2);
 		}
@@ -359,6 +402,7 @@ int fin = dup(0);	 //initialize fin to stdin
 	{
 		case SIMPLE_COMMAND:
 			//execute simple command
+			//printf("simplecommand!\n");
 			cmd_complete = simple_command(x, time_travel, false);	
 			if(cmd_complete < 0)
 			{
@@ -376,7 +420,9 @@ int fin = dup(0);	 //initialize fin to stdin
 			break;
 		case PIPE_COMMAND:
 			//do pipe
+			//printf("PIPECOMMAND!\n");
 			cmd_complete = pipe_command(x, time_travel);
+			//printf("finish pipecommand\n");
 			break;
 		case SUBSHELL_COMMAND:
 

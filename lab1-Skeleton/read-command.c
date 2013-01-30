@@ -258,7 +258,7 @@ command_t get_simple_command(command_stream_t buff)
   }
   s->u.word[i] = '\0';
   s->type = SIMPLE_COMMAND;
-  s->canfork = true;
+  s->canfork = 1;
   return s;
 }
 
@@ -279,7 +279,7 @@ command_t get_andor_command(command_stream_t buff)
 
     s->u.command[0] = left_c;
     s->u.command[1] = right_c;
-    s->canfork = true;
+    s->canfork = 1;
     left_c = s;
   }
   return left_c; 
@@ -298,7 +298,7 @@ command_t get_pipe_command(command_stream_t buff)
     s->u.command[0] = left_c;
     s->u.command[1] = right_c;
     s->type = PIPE_COMMAND;
-    s->canfork = true;
+    s->canfork = 1;
     left_c = s;
   }
   return left_c; 
@@ -318,7 +318,7 @@ command_t get_complete_command(command_stream_t buff)
     s->u.command[0] = left_c;
     s->u.command[1] = right_c;
     s->type = SEQUENCE_COMMAND;
-    s->canfork= true;
+    s->canfork= 1;
     left_c = s;
   }
   return left_c;
@@ -338,7 +338,7 @@ command_t get_subshell_command(command_stream_t buff)
   command_t s = checked_malloc(sizeof(struct command));
   s->type = SUBSHELL_COMMAND;
   s->u.subshell_command = c;
-  s->canfork = true;  
+  s->canfork = 1;  
 
   return s;
 }
