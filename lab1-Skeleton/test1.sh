@@ -1,5 +1,3 @@
-#testing for ;
-#clear; ls; echo good			#passed
 
 #testing for ;
 #clear; ls; echo good			#passed
@@ -10,11 +8,18 @@
 #testing |
 #ls | sort						#failed
 
-#true && ls #passed
-#false || ls					#failed
+#testing &&
+#true && false && ls 			#passed
+
+#testing ||
+#-1 || -1 || -1 || ls		    #passed
 
 #testing for multiple commands	#passed
 #echo hi
 #echo hello
 
 #: : : 							#failed
+
+#testing for subshell command
+#(echo 11222 > test2	)			#failed (read-command.c)
+
