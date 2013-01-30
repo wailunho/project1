@@ -299,7 +299,7 @@ andor_command(command_t x, bool time_travel)
 	switch(x->type){
 		case AND_COMMAND:
 			r_value=new_command(x->u.command[0], time_travel, true);
-			if(r_value >=0)
+			if(r_value >= 0)
 			{
 				new_command(x->u.command[1], time_travel, true);
 			}
@@ -311,7 +311,7 @@ andor_command(command_t x, bool time_travel)
 			break;
 		case OR_COMMAND:
 			r_value=new_command(x->u.command[0], time_travel, true);
-			if(r_value ==-1)
+			if(r_value == -1)
 			{
 				//left side or failed, but run right side
 				r_value = new_command(x->u.command[1], time_travel, true);
@@ -371,7 +371,7 @@ int fin = dup(0);	 //initialize fin to stdin
 			//a subshell command is the start of a new command
 			//recursively call new_command
 			swap_descriptors('s', x, &fdnew, fdout);
-			cmd_complete = new_command(x, time_travel, false);
+			cmd_complete = new_command(x->u.subshell_command, time_travel, false);
 			close(fdnew);
 			swap_descriptors('r', x, &fdout, 1);
 			swap_descriptors('r', x, &fin, 0);
