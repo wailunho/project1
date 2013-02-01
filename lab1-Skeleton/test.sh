@@ -1,10 +1,12 @@
-dsa || ls
-
 echo hi
 
 echo helloii
 
 echo newtest
-aaa||ls
 echo hey
 echo howdie
+
+
+echo aaa || bbb || echo ccc
+echo stupid
+echo test

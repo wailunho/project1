@@ -320,7 +320,7 @@ andor_command(command_t x, bool time_travel)
 			//printf("r_value is %i\n", r_value);
 			
 			//if(r_value == -1)
-			if(r_value >=0)
+			if(r_value >=1)
 			{
 				//left side or failed, but run right side
 				r_value = new_command(x->u.command[1], time_travel, true);
