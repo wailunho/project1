@@ -1,4 +1,4 @@
-// UCLA CS 111 Lab 1 command execution
+// UCLA CS 111 Lab 1 command executioni
 
 #include "command.h"
 #include "command-internals.h"
@@ -124,6 +124,7 @@ simple_command(command_t x, bool time_travel, bool andor)
 		if(execvp(argv[0], &(argv[0])) == -1)
 		{
 			fprintf(stderr, "failed to execute\n");
+			_exit(EXIT_FAILURE);
 			return -1;
 		}
 	}
@@ -166,6 +167,7 @@ simple_command(command_t x, bool time_travel, bool andor)
 	    if(execvp(argv[0], &(argv[0])) == -1)
    	    {
 	      fprintf(stderr, "failed to execute simple command\n");
+	      //exit(EXIT_FAILURE);
 	      return -1;
             }
     }    
@@ -358,7 +360,7 @@ andor_command(command_t x, bool time_travel)
 			{
 				new_command(x->u.command[1], time_travel, true);
 			}
-			else if(r_value == -1)
+			else //if(r_value == -1)
 			{
 				fprintf(stderr, "AND fail\n");
 				return -1;
@@ -366,7 +368,10 @@ andor_command(command_t x, bool time_travel)
 			break;
 		case OR_COMMAND:
 			r_value=new_command(x->u.command[0], time_travel, true);
-			if(r_value == -1)
+			//printf("r_value is %i\n", r_value);
+			
+			//if(r_value == -1)
+			if(r_value >=0)
 			{
 				//left side or failed, but run right side
 				r_value = new_command(x->u.command[1], time_travel, true);
@@ -406,7 +411,7 @@ int fin = dup(0);	 //initialize fin to stdin
 			cmd_complete = simple_command(x, time_travel, false);	
 			if(cmd_complete < 0)
 			{
-				fprintf(stderr, "simple command failed\n");
+				//fprintf(stderr, "simple command failed\n");
 				return -1;
 			}
 			break;
@@ -438,6 +443,7 @@ int fin = dup(0);	 //initialize fin to stdin
 			fprintf(stderr, "Invalid command type\n");
 			exit(1);
 	}
+	//printf("cmd_complete is %i\n", cmd_complete);
 	return cmd_complete;
 }
 

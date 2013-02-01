@@ -1,4 +1,4 @@
 cat a
 cat b
-ls | sort
 cat b
+-1 || echo hi
