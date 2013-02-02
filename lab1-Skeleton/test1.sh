@@ -12,7 +12,7 @@
 #testing &&
 #true && false && ls 			#passed
 
-echo aaa && echo ccc && dd && echo bbb    #failed
+echo aaa && echo ccc && 123321 && echo bbb    #failed
 echo hi
 echo hello
 aaa && echo ggg						
