@@ -119,6 +119,8 @@ simple_command(command_t x, bool time_travel, bool andor)
 		}
 		if( t == 0) //child process
 		{
+			if(x->u.word[0][0] == ':')
+			_exit(0);
 			//execute process
 			if(execvp(argv[0], &(argv[0])) == -1)
 			{
@@ -134,6 +136,7 @@ simple_command(command_t x, bool time_travel, bool andor)
 		}
 		else	//wait for parent process to finish
 		{
+
 
 			//wait for process to finish, store turn value in r_value
 			if(waitpid(-1,&r_value, 0) < 0)

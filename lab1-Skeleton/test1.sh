@@ -6,16 +6,16 @@
 
 #testing |
 #ls 	| echo 111			#passed
-#echo 666 | cat
+#echo 666 | cat > test2   # passed
 #ls | sort					#passed
 
 #testing &&
 #true && false && ls 			#passed
 
-echo aaa && echo ccc && 123321 && echo bbb    #passed
-echo hi
-echo hello
-aaa && echo ggg		
+#echo aaa && echo ccc && 123321 && echo bbb    #passed
+#echo hi
+#echo hello
+#aaa && echo ggg		
 
 #testing ||
 #-1 || -1 || -1 || ls		    #passed
@@ -27,7 +27,7 @@ aaa && echo ggg
 #echo hi
 #echo hello
 
-#: : : 							#failed
+# : : 							#passed
 
 #testing for subshell command
 #(echo 11222 > test2	)		#passed
