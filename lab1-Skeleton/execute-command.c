@@ -305,9 +305,9 @@ andor_command(command_t x, bool time_travel)
 	switch(x->type){
 		case AND_COMMAND:
 			r_value=new_command(x->u.command[0], time_travel, true);
-			if(r_value >= 0)
+			if(r_value == 0)
 			{
-				new_command(x->u.command[1], time_travel, true);
+				r_value = new_command(x->u.command[1], time_travel, true);
 			}
 			else //if(r_value == -1)
 			{

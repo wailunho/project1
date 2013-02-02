@@ -12,10 +12,10 @@
 #testing &&
 #true && false && ls 			#passed
 
-echo aaa && echo ccc && 123321 && echo bbb    #failed
+echo aaa && echo ccc && 123321 && echo bbb    #passed
 echo hi
 echo hello
-aaa && echo ggg						
+aaa && echo ggg		
 
 #testing ||
 #-1 || -1 || -1 || ls		    #passed
