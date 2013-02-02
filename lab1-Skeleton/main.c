@@ -56,15 +56,15 @@ main (int argc, char **argv)
   while ((command = read_command_stream (command_stream)))
     {
       if (print_tree)
-	{
-	  printf ("# %d\n", command_number++);
-	  print_command (command);
-	}
+    	{
+    	  printf ("# %d\n", command_number++);
+    	  print_command (command);
+    	}
       else
-	{
-	  last_command = command;
-	  execute_command (command, time_travel);
-	}
+    	{
+    	  last_command = command;
+    	  execute_command (command, time_travel);
+  	  }
     }
 
   return print_tree || !last_command ? 0 : command_status (last_command);
