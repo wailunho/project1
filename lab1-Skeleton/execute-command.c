@@ -123,7 +123,6 @@ simple_command(command_t x, bool time_travel, bool andor)
 			if(execvp(argv[0], &(argv[0])) == -1)
 			{
 				fprintf(stderr, "failed to execute\n");
-				_exit(0);
 				return -1;
 			}
 		}
