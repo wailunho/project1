@@ -17,7 +17,8 @@ In other words, the shell script it is parsing has to be in the format that
 the program can handle. Otherwise, undefined behavior may appear.
 
 Comments on Part b:
-No special features or limitations.
+No special features or limitations. It behaves the same as running the 
+shell script itself. 
 
 Comment on Part c:
 We did not implement this part. 
