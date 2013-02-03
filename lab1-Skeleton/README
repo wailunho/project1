@@ -10,5 +10,14 @@ UID: 803782632
 Wai Lun Ho
 UID: 103930546
 
-Comments on part a:
-Works
+Comments on Part a:
+The limitation on part a is that it can only read a subset of special keyword 
+in a shell script as asked in the instruction. Special keywords like >> and <&.
+In other words, the shell script it is parsing has to be in the format that
+the program can handle. Otherwise, undefined behavior may appear.
+
+Comments on Part b:
+No special features or limitations.
+
+Comment on Part c:
+We did not implement this part. 
